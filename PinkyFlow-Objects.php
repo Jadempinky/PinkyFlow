@@ -118,11 +118,11 @@ if ($enableUserModule) {
             
 
             public function add($username, $password, $uid) {
-                $username = $this->db->real_escape_string($username);
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $this->db->prepare("INSERT INTO {$this->table} (username, password, uid) VALUES (:username, :password, :uid)");
                 $stmt->execute(['username' => $username, 'password' => $hashedPassword, 'uid' => $uid]);
             }
+            
             
             
 
@@ -169,15 +169,17 @@ if ($enableUserModule) {
                 $stmt = $this->db->prepare("SELECT uid, password FROM {$this->table} WHERE username = :username");
                 $stmt->execute(['username' => $username]);
                 $user = $stmt->fetch();
-            
                 if ($user && password_verify($password, $user['password'])) {
                     session_regenerate_id(true);
                     $_SESSION['uid'] = $user['uid'];
                     $this->uid = $user['uid'];
-                    return true; // Authentication successful
+                    $this->setLastLogin();
+                    $this->setLastIp($_SERVER['REMOTE_ADDR']);
+                    return true;
                 }
-                return false; // Authentication failed
+                return false;
             }
+            
 
             public function logout() {
                 $_SESSION = [];
@@ -252,7 +254,7 @@ if ($enableUserModule) {
                 if ($this->db->verifyInTable($this->table, 'email', $email)) {
                     return "Email already exists";
                 }
-                
+
                 $uid = uniqid();
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $this->db->prepare("INSERT INTO {$this->table} (uid, username, password, email) VALUES (:uid, :username, :password, :email)");
