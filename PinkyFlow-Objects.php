@@ -6,7 +6,11 @@ Note to self, to add
 DONE ----> Add a favourite option
 DONE ----> Make Wish list != Favourite
 DONE ----> Make a wish list for items
+DONE ----> Add a role optiion to the user
 DOING ---> Add reviews, comments, and rating
+DOING ---> Add a cart and change certain functions to check for role
+
+
 Get the best rated items with a function getting $num of them
 When doing the js file, link it to the DB for shop autocompletion
 Edit the shop db to properly incorporate users and other needed things
@@ -15,7 +19,6 @@ And, add an option for certain subcategories to show different options
 For example (Clothes > Shirt > Large, Medium, Small)
 Add a function to add / Get and edit categories, subcategories, etc
 
-Add a role optiion to the user, and change certain functions to check for role
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -173,16 +176,19 @@ if ($enableUserModule) {
             private $username;
             private $password;
             private $uid;
+            private $role;
             private $db;
             private $table;
             public $sessionname;
             private $comment;
+            
 
             public function __construct($db) {
                 $this->db = $db;
                 $this->table = 'users';
+                $this->role = 'user';
                 $this->sessionname = "pinkyflow_user";
-                if ($enableCommentModule) {
+                if (isset($enableCommentModule) && $enableCommentModule) {
                     $this->comment = new PinkyFlowComment($db, $this->table, $this->sessionname);
                 }
 
@@ -231,6 +237,7 @@ if ($enableUserModule) {
                         `username` VARCHAR(255) NOT NULL,
                         `password` VARCHAR(255) NOT NULL,
                         `email` VARCHAR(255),
+                        `role` VARCHAR(255) NOT NULL DEFAULT 'user',
                         `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         `last_ip` VARCHAR(255)
@@ -337,6 +344,23 @@ if ($enableUserModule) {
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `username`, `password`, `email`) VALUES (:uid, :username, :password, :email)");
                 $stmt->execute(['uid' => $uid, 'username' => $username, 'password' => $hashedPassword, 'email' => $email]);
+                return true;
+            }
+
+            public function getRole() {
+                $stmt = $this->db->prepare("SELECT `role` FROM `{$this->table}` WHERE `uid` = :uid");
+                $stmt->execute(['uid' => $this->uid]);
+                $user = $stmt->fetch();
+                $this->role = $user['role'];
+                return $user['role'];
+            }
+
+            public function setRole($role) {
+                $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `role` = :role WHERE `uid` = :uid");
+                $stmt->execute(['role' => $role, 'uid' => $this->uid]);
+
+                $this->role = $role;
+
                 return true;
             }
 
