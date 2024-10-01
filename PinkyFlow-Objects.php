@@ -11,6 +11,7 @@ DOING ---> Add reviews, comments, and rating
 DOING ---> Add a cart and change certain functions to check for role
 
 
+Add easy discount function
 Get the best rated items with a function getting $num of them
 When doing the js file, link it to the DB for shop autocompletion
 Edit the shop db to properly incorporate users and other needed things
@@ -180,7 +181,7 @@ if ($enableUserModule) {
             private $db;
             private $table;
             public $sessionname;
-            private $comment;
+            public $comment;
             
 
             public function __construct($db) {
@@ -188,8 +189,9 @@ if ($enableUserModule) {
                 $this->table = 'users';
                 $this->role = 'user';
                 $this->sessionname = "pinkyflow_user";
-                if (isset($enableCommentModule) && $enableCommentModule) {
-                    $this->comment = new PinkyFlowComment($db, $this->table, $this->sessionname);
+                $this->comment = new PinkyFlowComment($db, $this->table, $this);                
+                if (!$enableCommentModule) {
+                    $this->comment = "A";
                 }
 
                 if (session_status() == PHP_SESSION_NONE) {
@@ -362,6 +364,10 @@ if ($enableUserModule) {
                 $this->role = $role;
 
                 return true;
+            }
+
+            public function getTable() {
+                return $this->table;
             }
 
         }
@@ -836,7 +842,7 @@ if ($enableCommentModule) {
             private $user;
             private $table;
 
-            public function __construct($db) {
+            public function __construct($db, $user) {
                 $this->db = $db;
                 $this->user = $user;
                 $this->table = 'comments';
@@ -848,11 +854,12 @@ if ($enableCommentModule) {
                     $options = "
                         `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                         `uid` VARCHAR(255) NOT NULL,
+                        `rating` INT,
                         `comment_parent` VARCHAR(255) NOT NULL,
                         `comment` TEXT NOT NULL,
                         `added_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (`uid`) REFERENCES `users`(`uid`) ON DELETE CASCADE,
-                        FOREIGN KEY (`product_id`) REFERENCES `products`(`product_id`) ON DELETE CASCADE
+                        FOREIGN KEY (`comment_parent`) REFERENCES `products`(`product_id`) ON DELETE CASCADE
                     ";
                     try {
                         $this->db->createTable($this->table, $options);
@@ -863,7 +870,7 @@ if ($enableCommentModule) {
                 }
             }
 
-            public function addComment($product_id, $comment, $user_uid = null) {
+            public function addComment($product_id, $comment, $user_uid = null, $rating = null) {
                 if (!$this->user->isLoggedIn()) {
                     throw new Exception("User must be logged in to add comments.");
                 }
@@ -871,8 +878,13 @@ if ($enableCommentModule) {
                     $user_uid = $this->user->getUid();
                 }
                 $uid = $user_uid;
-                $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `comment_parent`, `comment`) VALUES (:uid, :comment_parent, :comment)");
-                $stmt->execute(['uid' => $uid, 'comment_parent' => $product_id, 'comment' => $comment]);
+                $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `comment_parent`, `comment`" . ($rating !== null ? ", `rating`" : "") . ") VALUES (:uid, :comment_parent, :comment" . ($rating !== null ? ", :rating" : "") . ")");
+                $stmt->execute([
+                    'uid' => $uid,
+                    'comment_parent' => $product_id,
+                    'comment' => $comment,
+                    'rating' => $rating
+                ]);
             }
 
             public function getComments($product_id) {
@@ -903,6 +915,40 @@ if ($enableCommentModule) {
             }
 
             public function clearAllComments() {
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}`");
+                $stmt->execute();
+            }
+
+            public function getCommentCount($product_id) {
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchColumn();
+            }
+
+            public function getRating($product_id) {
+                $stmt = $this->db->prepare("SELECT AVG(`rating`) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchColumn();
+            }
+
+            public function getRatingCount($product_id) {
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchColumn();
+            }
+
+            public function getRatings($product_id) {
+                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchAll();
+            }
+
+            public function deleteRating($product_id) {
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+            }
+
+            public function deleteAllRatings() {
                 $stmt = $this->db->prepare("DELETE FROM `{$this->table}`");
                 $stmt->execute();
             }
