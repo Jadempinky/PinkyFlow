@@ -1,5 +1,20 @@
 <?php
 
+
+/*
+Note to self, to add
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Add a favourite option
+Add reviews, comments, and rating
+Get the best rated items with a function getting $num of them
+When doing the js file, link it to the DB for shop autocompletion
+Wish list != Favourite
+Make a wish list for items
+Edit the shop db to properly incorporate users and other needed things
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+*/
+
 if (!isset($enableDatabase)) {
     $enableDatabase = false;
 }
@@ -530,8 +545,16 @@ if ($enableShoppingModule) {
             }
     
             public function checkout() {
-                // This method can be expanded to handle the checkout process
-                // For now, we'll just clear the cart
+                $cartItems = $this->cart->getCartItems();
+                foreach ($cartItems as $item) {
+                    $new_stock = $item['stock'] - $item['quantity'];
+
+                    if ($new_stock < 0) {
+                        throw new Exception("Insufficient stock for product: " . $item['name']);
+                    }
+
+                    $this->product->updateStock($item['product_id'], $new_stock);
+                }
                 $this->cart->clearCart();
             }
     
