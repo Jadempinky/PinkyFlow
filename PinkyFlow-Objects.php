@@ -34,14 +34,35 @@ if ($enableDatabase) {
                 $this->user = $user;
                 $this->pass = $pass;
                 $this->db = $db;
-                $dsn = "mysql:host={$this->host};dbname={$this->db};charset=utf8mb4";
+                $dsn = "mysql:host={$this->host}";
                 $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 ];
-                $this->conn = new PDO($dsn, $this->user, $this->pass, $options);
+                try {
+                    $this->conn = new PDO($dsn, $this->user, $this->pass, $options);
+                } catch (PDOException $e) {
+                    die("Database connection failed: " . $e->getMessage());
+                }
+            
+                if (!$this->verifyDatabase()) {
+                    $this->createDB($this->db);
+                }
+            
+                $dsn = "mysql:host={$this->host};dbname={$this->db};charset=utf8mb4";
+                try {
+                    $this->conn = new PDO($dsn, $this->user, $this->pass, $options);
+                } catch (PDOException $e) {
+                    die("Database selection failed: " . $e->getMessage());
+                }
             }
+            
         
+            public function createDB($dbName) {
+                $sql = "CREATE DATABASE IF NOT EXISTS $dbName";
+                $this->query($sql);
+            }
+
             public function query($sql, $params = []) {
                 try {
                     $stmt = $this->conn->prepare($sql);
@@ -75,9 +96,10 @@ if ($enableDatabase) {
             
 
             public function createTable($tableName, $options) {
-                $sql = "CREATE TABLE IF NOT EXISTS `$tableName` ($options);";
+                $sql = "CREATE TABLE IF NOT EXISTS `$tableName` ($options) ENGINE=InnoDB;";
                 $this->query($sql);
             }
+            
             
 
             public function prepare($sql) {
@@ -89,6 +111,26 @@ if ($enableDatabase) {
                 $stmt->execute(['value' => $value]);
                 return $stmt->rowCount() > 0;
             }
+
+            public function verifyDatabase() {
+                $sql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = :dbName";
+                try {
+                    $stmt = $this->conn->prepare($sql);
+                    $stmt->execute(['dbName' => $this->db]);
+                    $result = $stmt->fetch(); // This could return false if the schema doesn't exist
+            
+                    if ($result === false) {
+                        // Database does not exist
+                        return false;
+                    }
+            
+                    return true;
+                } catch (PDOException $e) {
+                    error_log("Database verification failed: " . $e->getMessage());
+                    return false;
+                }
+            }
+            
         }
     }
 }
@@ -115,6 +157,8 @@ if ($enableUserModule) {
                 if (isset($_SESSION['uid'])) {
                     $this->uid = $_SESSION['uid'];
                 }
+
+                $this->Verify();
             }
             
             
@@ -153,7 +197,7 @@ if ($enableUserModule) {
                 if (!$this->db->CheckTable($this->table)) {
                     $options = "
                         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                        uid VARCHAR(255) NOT NULL,
+                        uid VARCHAR(255) NOT NULL UNIQUE,
                         username VARCHAR(255) NOT NULL,
                         password VARCHAR(255) NOT NULL,
                         email VARCHAR(255),
@@ -165,12 +209,11 @@ if ($enableUserModule) {
                         $this->db->CreateTable($this->table, $options);
                     } catch (Exception $e) {
                         error_log($e->getMessage());
-                        // Display a user-friendly message
-                        echo "An error occurred while creating the table.";
+                        echo "An error occurred while creating the users table.";
                     }
-                    
                 }
             }
+            
 
             public function login($username, $password) {
                 $stmt = $this->db->prepare("SELECT uid, password FROM {$this->table} WHERE username = :username");
@@ -279,24 +322,24 @@ if ($enableShoppingModule) {
         class PinkyFlowProduct {
             private $db;
             private $table;
-
+    
             public function __construct($db) {
                 $this->db = $db;
                 $this->table = 'products';
                 $this->verifyTable();
             }
-
+    
             private function verifyTable() {
                 if (!$this->db->checkTable($this->table)) {
                     $options = "
-                        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                        product_id VARCHAR(255) NOT NULL,
-                        name VARCHAR(255) NOT NULL,
-                        description TEXT,
-                        price DECIMAL(10, 2) NOT NULL,
-                        stock INT NOT NULL DEFAULT 0,
-                        image VARCHAR(255),
-                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        `product_id` VARCHAR(255) NOT NULL UNIQUE,
+                        `name` VARCHAR(255) NOT NULL,
+                        `description` TEXT,
+                        `price` DECIMAL(10, 2) NOT NULL,
+                        `stock` INT NOT NULL DEFAULT 0,
+                        `image` VARCHAR(255),
+                        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                     ";
                     try {
                         $this->db->createTable($this->table, $options);
@@ -306,10 +349,10 @@ if ($enableShoppingModule) {
                     }
                 }
             }
-
+    
             public function createProduct($name, $description, $price, $stock, $image) {
-                $product_id = uniqid();
-                $stmt = $this->db->prepare("INSERT INTO {$this->table} (product_id, name, description, price, stock, image) VALUES (:product_id, :name, :description, :price, :stock, :image)");
+                $product_id = uniqid('', true); // More unique product_id
+                $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`product_id`, `name`, `description`, `price`, `stock`, `image`) VALUES (:product_id, :name, :description, :price, :stock, :image)");
                 $stmt->execute([
                     'product_id' => $product_id,
                     'name' => $name,
@@ -320,52 +363,53 @@ if ($enableShoppingModule) {
                 ]);
                 return $product_id;
             }
-
+    
             public function updateStock($product_id, $quantity) {
-                $stmt = $this->db->prepare("UPDATE {$this->table} SET stock = :stock WHERE product_id = :product_id");
+                $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `stock` = :stock WHERE `product_id` = :product_id");
                 $stmt->execute([
                     'stock' => $quantity,
                     'product_id' => $product_id
                 ]);
             }
-
+    
             public function getProduct($product_id) {
-                $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE product_id = :product_id");
+                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `product_id` = :product_id");
                 $stmt->execute(['product_id' => $product_id]);
                 return $stmt->fetch();
             }
-
+    
             public function getAllProducts() {
-                $stmt = $this->db->prepare("SELECT * FROM {$this->table}");
+                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}`");
                 $stmt->execute();
                 return $stmt->fetchAll();
             }
         }
     }
-
+    
+    // PinkyFlowCart Class
     if (!class_exists('PinkyFlowCart')) {
         class PinkyFlowCart {
             private $db;
             private $user;
             private $table;
-
+    
             public function __construct($db, $user) {
                 $this->db = $db;
                 $this->user = $user;
                 $this->table = 'carts';
                 $this->verifyTable();
             }
-
+    
             private function verifyTable() {
                 if (!$this->db->checkTable($this->table)) {
                     $options = "
-                        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                        uid VARCHAR(255) NOT NULL,
-                        product_id VARCHAR(255) NOT NULL,
-                        quantity INT NOT NULL,
-                        added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (uid) REFERENCES users(uid),
-                        FOREIGN KEY (product_id) REFERENCES products(product_id)
+                        `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        `uid` VARCHAR(255) NOT NULL,
+                        `product_id` VARCHAR(255) NOT NULL,
+                        `quantity` INT NOT NULL,
+                        `added_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (`uid`) REFERENCES `users`(`uid`) ON DELETE CASCADE,
+                        FOREIGN KEY (`product_id`) REFERENCES `products`(`product_id`) ON DELETE CASCADE
                     ";
                     try {
                         $this->db->createTable($this->table, $options);
@@ -375,22 +419,22 @@ if ($enableShoppingModule) {
                     }
                 }
             }
-
+    
             public function addToCart($product_id, $quantity) {
                 if (!$this->user->isLoggedIn()) {
                     throw new Exception("User must be logged in to add items to cart.");
                 }
                 $uid = $this->user->getUid();
-
+    
                 // Check if the item is already in the cart
-                $stmt = $this->db->prepare("SELECT quantity FROM {$this->table} WHERE uid = :uid AND product_id = :product_id");
+                $stmt = $this->db->prepare("SELECT `quantity` FROM `{$this->table}` WHERE `uid` = :uid AND `product_id` = :product_id");
                 $stmt->execute(['uid' => $uid, 'product_id' => $product_id]);
                 $result = $stmt->fetch();
-
+    
                 if ($result) {
                     // Update quantity
                     $newQuantity = $result['quantity'] + $quantity;
-                    $stmt = $this->db->prepare("UPDATE {$this->table} SET quantity = :quantity WHERE uid = :uid AND product_id = :product_id");
+                    $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `quantity` = :quantity WHERE `uid` = :uid AND `product_id` = :product_id");
                     $stmt->execute([
                         'quantity' => $newQuantity,
                         'uid' => $uid,
@@ -398,7 +442,7 @@ if ($enableShoppingModule) {
                     ]);
                 } else {
                     // Insert new record
-                    $stmt = $this->db->prepare("INSERT INTO {$this->table} (uid, product_id, quantity) VALUES (:uid, :product_id, :quantity)");
+                    $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `product_id`, `quantity`) VALUES (:uid, :product_id, :quantity)");
                     $stmt->execute([
                         'uid' => $uid,
                         'product_id' => $product_id,
@@ -406,88 +450,100 @@ if ($enableShoppingModule) {
                     ]);
                 }
             }
-
+    
             public function removeFromCart($product_id) {
                 if (!$this->user->isLoggedIn()) {
                     throw new Exception("User must be logged in to remove items from cart.");
                 }
                 $uid = $this->user->getUid();
-                $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE uid = :uid AND product_id = :product_id");
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `uid` = :uid AND `product_id` = :product_id");
                 $stmt->execute(['uid' => $uid, 'product_id' => $product_id]);
             }
-
+    
             public function getCartItems() {
                 if (!$this->user->isLoggedIn()) {
                     throw new Exception("User must be logged in to view cart items.");
                 }
                 $uid = $this->user->getUid();
                 $stmt = $this->db->prepare("
-                    SELECT p.*, c.quantity FROM {$this->table} c
-                    JOIN products p ON c.product_id = p.product_id
+                    SELECT p.*, c.quantity 
+                    FROM `{$this->table}` c
+                    JOIN `products` p ON c.product_id = p.product_id
                     WHERE c.uid = :uid
                 ");
                 $stmt->execute(['uid' => $uid]);
                 return $stmt->fetchAll();
             }
-
+    
             public function clearCart() {
                 if (!$this->user->isLoggedIn()) {
                     throw new Exception("User must be logged in to clear the cart.");
                 }
                 $uid = $this->user->getUid();
-                $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE uid = :uid");
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `uid` = :uid");
                 $stmt->execute(['uid' => $uid]);
             }
         }
     }
-
+    
+    // PinkyFlowShop Class
     if (!class_exists('PinkyFlowShop')) {
         class PinkyFlowShop {
             private $db;
-            private $user;
+            public $user;
             private $product;
             private $cart;
-
+    
             public function __construct($db, $user) {
                 $this->db = $db;
                 $this->user = $user;
                 $this->product = new PinkyFlowProduct($db);
                 $this->cart = new PinkyFlowCart($db, $user);
             }
-
+    
             public function listProducts() {
                 return $this->product->getAllProducts();
             }
-
+    
             public function viewProduct($product_id) {
                 return $this->product->getProduct($product_id);
             }
-
+    
             public function addProduct($name, $description, $price, $stock, $image) {
                 return $this->product->createProduct($name, $description, $price, $stock, $image);
             }
-
+    
             public function updateProductStock($product_id, $quantity) {
                 $this->product->updateStock($product_id, $quantity);
             }
-
+    
             public function addToCart($product_id, $quantity) {
                 $this->cart->addToCart($product_id, $quantity);
             }
-
+    
             public function removeFromCart($product_id) {
                 $this->cart->removeFromCart($product_id);
             }
-
+    
             public function viewCart() {
                 return $this->cart->getCartItems();
             }
-
+    
             public function checkout() {
                 // This method can be expanded to handle the checkout process
                 // For now, we'll just clear the cart
                 $this->cart->clearCart();
             }
+    
+            // Add getter methods if needed
+            public function getProductClass() {
+                return $this->product;
+            }
+    
+            public function getCartClass() {
+                return $this->cart;
+            }
         }
     }
+    
 }
