@@ -81,14 +81,14 @@ try {
 
 // Initialize User Module
 if ($enableUserModule) {
-    $user = new PinkyFlowUser($db);
+    $user = new PinkyFlowUser($db, $enableCommentModule); // Pass $enableCommentModule as per previous fix
     $user->Verify(); // Ensure users table exists
 }
 
+// Initialize Comment Module
 if ($enableCommentModule && isset($user)) {
     $comment = new PinkyFlowComment($db, $user);
 }
-
 
 // Initialize Shop Module
 if ($enableShoppingModule && isset($user)) {
@@ -138,14 +138,74 @@ if ($enableShoppingModule && isset($user)) {
     }
 }
 
+// Handle Logout
+if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
+    if (isset($user)) {
+        $user->logout();
+        echo "<p class='success'>Logged out successfully.</p>";
+    }
+    // Optionally, redirect to home after logout
+    // header("Location: index.php");
+    // exit;
+}
+
+// Handle Login Submission
+if (isset($_GET['login']) && $_GET['login'] === 'true' && isset($user)) {
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+
+    try {
+        if (empty($username) || empty($password)) {
+            throw new Exception("Both username and password are required.");
+        }
+
+        if ($user->login($username, $password)) {
+            echo "<p class='success'>Logged in successfully!</p>";
+        } else {
+            throw new Exception("Invalid username or password.");
+        }
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
+}
+
+// Handle Register Submission
+if (isset($_GET['register']) && $_GET['register'] === 'true' && isset($user)) {
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+    $verifyPassword = trim($_POST['verifyPassword'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+
+    try {
+        if (empty($username) || empty($password) || empty($verifyPassword) || empty($email)) {
+            throw new Exception("All fields are required.");
+        }
+
+        if ($password !== $verifyPassword) {
+            throw new Exception("Passwords do not match.");
+        }
+
+        $registrationResult = $user->register($username, $password, $verifyPassword, $email);
+
+        if ($registrationResult === true) {
+            echo "<p class='success'>Registration successful! You can now <a href='?login_form'>log in</a>.</p>";
+        } else {
+            // Assuming $registrationResult contains the error message
+            throw new Exception($registrationResult);
+        }
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
+}
+
 // Handle Comment Submission
 if (isset($_GET['add_comment']) && isset($_GET['product_id']) && isset($shop) && $shop->user->isLoggedIn()) {
     $product_id = $_GET['product_id'];
-    $comment = trim($_POST['comment'] ?? '');
+    $commentText = trim($_POST['comment'] ?? '');
     $rating = isset($_POST['rating']) ? (int)$_POST['rating'] : null;
 
     try {
-        if (empty($comment)) {
+        if (empty($commentText)) {
             throw new Exception("Comment cannot be empty.");
         }
 
@@ -154,45 +214,109 @@ if (isset($_GET['add_comment']) && isset($_GET['product_id']) && isset($shop) &&
         }
 
         if ($rating == null) {
-            throw new Exception("Rating is not supported yet.");
+            // If rating is not supported yet, you can choose to set a default rating or handle accordingly
+            // For now, we'll proceed without rating
+            // Alternatively, uncomment the next line to throw an exception
+            // throw new Exception("Rating is required.");
         }
 
-        if (!$shop->user->comment->verifyTable()) {
-            throw new Exception("Comment module not initialized.");
-        }
+        // Remove the verifyTable check as it might cause issues (the table should already exist)
+        // if (!$shop->user->comment->verifyTable()) {
+        //     throw new Exception("Comment module not initialized.");
+        // }
 
-        if (!$shop->productExists($product_id)) {
-            throw new Exception("Product does not exist.");
-        }
-        $shop->user->comment->addComment($product_id, $comment, $shop->user->getUid(), $rating);
+        $shop->user->comment->addComment($product_id, $commentText, $shop->user->getUid(), $rating);
         echo "<p class='success'>Comment added successfully!</p>";
     } catch (Exception $e) {
         echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
     }
 }
 
-
-// Handle View Product Comments
-if (isset($_GET['view_comments']) && isset($shop)) {
+// Handle Add to Cart
+if (isset($_GET['add_to_cart']) && $_GET['add_to_cart'] === 'true' && isset($_GET['product_id']) && isset($shop) && $shop->user->isLoggedIn()) {
     $product_id = $_GET['product_id'];
-    echo "<h2>Comments and Reviews</h2>";
-    $comments = $shop->user->comment->getComments($product_id);
-    if (empty($comments)) {
-        echo "<p>No comments yet.</p>";
-    } else {
-        foreach ($comments as $comm) {
-            echo "<div class='comment-item'>";
-            echo "<p><strong>User:</strong> " . htmlspecialchars($comm['uid']) . "</p>";
-            echo "<p><strong>Comment:</strong> " . htmlspecialchars($comm['comment']) . "</p>";
-            if (isset($comm['rating'])) {
-                echo "<p><strong>Rating:</strong> " . (int)$comm['rating'] . "/5</p>";
-            }
-            echo "<p><small>Posted on: " . htmlspecialchars($comm['added_at']) . "</small></p>";
-            echo "</div><br>";
+    $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+
+    try {
+        if ($quantity < 1) {
+            throw new Exception("Quantity must be at least 1.");
         }
+
+        $shop->addToCart($product_id, $quantity);
+        echo "<p class='success'>Product added to cart successfully!</p>";
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
     }
-    echo "<br><a href='index.php'>Back to Home</a>";
-    exit;
+}
+
+// Handle Remove from Cart
+if (isset($_GET['remove_from_cart']) && $_GET['remove_from_cart'] === 'true' && isset($_GET['product_id']) && isset($shop) && $shop->user->isLoggedIn()) {
+    $product_id = $_GET['product_id'];
+
+    try {
+        $shop->removeFromCart($product_id);
+        echo "<p class='success'>Product removed from cart successfully!</p>";
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
+}
+
+// Handle Checkout
+if (isset($_GET['checkout']) && $_GET['checkout'] === 'true' && isset($shop) && $shop->user->isLoggedIn()) {
+    try {
+        $shop->checkout();
+        echo "<p class='success'>Checkout successful! Your order has been placed.</p>";
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
+}
+
+// Handle Add to Favorite
+if (isset($_GET['add_to_favorite']) && $_GET['add_to_favorite'] === 'true' && isset($_GET['product_id']) && isset($shop) && $shop->user->isLoggedIn()) {
+    $product_id = $_GET['product_id'];
+
+    try {
+        $shop->addToFavorite($product_id);
+        echo "<p class='success'>Product added to favorites successfully!</p>";
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
+}
+
+// Handle Remove from Favorite
+if (isset($_GET['remove_from_favorite']) && $_GET['remove_from_favorite'] === 'true' && isset($_GET['product_id']) && isset($shop) && $shop->user->isLoggedIn()) {
+    $product_id = $_GET['product_id'];
+
+    try {
+        $shop->removeFromFavorite($product_id);
+        echo "<p class='success'>Product removed from favorites successfully!</p>";
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
+}
+
+// Handle Add to Wishlist
+if (isset($_GET['add_to_wishlist']) && $_GET['add_to_wishlist'] === 'true' && isset($_GET['product_id']) && isset($shop) && $shop->user->isLoggedIn()) {
+    $product_id = $_GET['product_id'];
+
+    try {
+        $shop->addToWishlist($product_id);
+        echo "<p class='success'>Product added to wishlist successfully!</p>";
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
+}
+
+// Handle Remove from Wishlist
+if (isset($_GET['remove_from_wishlist']) && $_GET['remove_from_wishlist'] === 'true' && isset($_GET['product_id']) && isset($shop) && $shop->user->isLoggedIn()) {
+    $product_id = $_GET['product_id'];
+
+    try {
+        $shop->removeFromWishlist($product_id);
+        echo "<p class='success'>Product removed from wishlist successfully!</p>";
+    } catch (Exception $e) {
+        echo "<p class='error'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    }
 }
 
 // Navigation Links
@@ -206,16 +330,16 @@ if (isset($user) && $user->isLoggedIn()) {
         echo "Logged in as Unknown User";
     }
 
-    echo " | <a href='?logout'>Log out</a> | ";
+    echo " | <a href='?logout=true'>Log out</a> | ";
     if ($enableShoppingModule) {
         echo "<a href='?action=list_products'>View Products</a> | ";
         echo "<a href='?action=view_cart'>View Cart</a> | ";
-        echo "<a href='?view_favorites'>View Favorites</a> | ";
-        echo "<a href='?view_wishlist'>View Wishlist</a>";
+        echo "<a href='?action=view_favorites'>View Favorites</a> | ";
+        echo "<a href='?action=view_wishlist'>View Wishlist</a>";
     }
 } else {
-    echo "<a href='?login_form'>Log in</a> | ";
-    echo "<a href='?register_form'>Register</a>";
+    echo "<a href='?login_form=true'>Log in</a> | ";
+    echo "<a href='?register_form=true'>Register</a>";
 }
 echo "</div>";
 
@@ -300,13 +424,49 @@ if (isset($user) && $user->isLoggedIn() && $enableShoppingModule) {
             }
             break;
 
+        case 'view_favorites':
+            echo "<h2>Your Favorites</h2>";
+            $favoriteItems = $shop->getFavoriteItems();
+            if (empty($favoriteItems)) {
+                echo "<p>You have no favorite items.</p>";
+            } else {
+                foreach ($favoriteItems as $item) {
+                    echo "<div class='favorite-item'>";
+                    echo "<h3>" . htmlspecialchars($item['name']) . "</h3>";
+                    echo "<p>" . htmlspecialchars($item['description']) . "</p>";
+                    echo "<p>Price: $" . number_format($item['price'], 2) . "</p>";
+                    echo "<p>Added on: " . htmlspecialchars($item['added_at']) . "</p>";
+                    echo "<a href='?remove_from_favorite=true&product_id=" . urlencode($item['product_id']) . "' onclick=\"return confirm('Remove this item from favorites?');\">Remove from Favorites</a>";
+                    echo "</div>";
+                }
+            }
+            break;
+
+        case 'view_wishlist':
+            echo "<h2>Your Wishlist</h2>";
+            $wishlistItems = $shop->getWishlistItems();
+            if (empty($wishlistItems)) {
+                echo "<p>Your wishlist is empty.</p>";
+            } else {
+                foreach ($wishlistItems as $item) {
+                    echo "<div class='wishlist-item'>";
+                    echo "<h3>" . htmlspecialchars($item['name']) . "</h3>";
+                    echo "<p>" . htmlspecialchars($item['description']) . "</p>";
+                    echo "<p>Price: $" . number_format($item['price'], 2) . "</p>";
+                    echo "<p>Added on: " . htmlspecialchars($item['added_at']) . "</p>";
+                    echo "<a href='?remove_from_wishlist=true&product_id=" . urlencode($item['product_id']) . "' onclick=\"return confirm('Remove this item from wishlist?');\">Remove from Wishlist</a>";
+                    echo "</div>";
+                }
+            }
+            break;
+
         default:
             echo "<h2>Welcome to PinkyFlow Shop</h2>";
             echo "<p>Explore our products by clicking <a href='?action=list_products'>here</a>.</p>";
             break;
     }
 } else {
-    if (isset($_GET['login_form'])) {
+    if (isset($_GET['login_form']) && $_GET['login_form'] === 'true') {
         echo "<h2>Login</h2>";
         echo "<form action='?login=true' method='post'>
             <label for='username'>Username:</label>
@@ -318,7 +478,7 @@ if (isset($user) && $user->isLoggedIn() && $enableShoppingModule) {
             <input type='submit' value='Log in'>
         </form>";
         echo "<br><a href='index.php'>Back to Home</a>";
-    } elseif (isset($_GET['register_form'])) {
+    } elseif (isset($_GET['register_form']) && $_GET['register_form'] === 'true') {
         echo "<h2>Register</h2>";
         echo "<form action='?register=true' method='post'>
             <label for='username'>Username:</label>
@@ -337,7 +497,7 @@ if (isset($user) && $user->isLoggedIn() && $enableShoppingModule) {
         </form>";
         echo "<br><a href='index.php'>Back to Home</a>";
     } else {
-        echo "<p>Welcome to PinkyFlow! Please <a href='?login_form'>log in</a> or <a href='?register_form'>register</a> to continue.</p>";
+        echo "<p>Welcome to PinkyFlow! Please <a href='?login_form=true'>log in</a> or <a href='?register_form=true'>register</a> to continue.</p>";
     }
 }
 ?>

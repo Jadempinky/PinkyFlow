@@ -185,15 +185,18 @@ if ($enableUserModule) {
             
 
             public function __construct($db) {
+                global $enableCommentModule; // Declare as global
                 $this->db = $db;
                 $this->table = 'users';
                 $this->role = 'user';
                 $this->sessionname = "pinkyflow_user";
-                $this->comment = new PinkyFlowComment($db, $this->table, $this);                
-                if (!$enableCommentModule) {
+                
+                if ($enableCommentModule) {
+                    $this->comment = new PinkyFlowComment($db, $this);
+                } else {
                     $this->comment = "A";
                 }
-
+            
                 if (session_status() == PHP_SESSION_NONE) {
                     session_name($this->sessionname);
                     session_start();
@@ -201,9 +204,10 @@ if ($enableUserModule) {
                 if (isset($_SESSION['uid'])) {
                     $this->uid = $_SESSION['uid'];
                 }
-
+            
                 $this->Verify();
             }
+            
 
             public function verifyPassword($inputPassword) {
                 return password_verify($inputPassword, $this->password);
@@ -849,7 +853,7 @@ if ($enableCommentModule) {
                 $this->verifyTable();
             }
 
-            private function verifyTable() {
+            public function verifyTable() {
                 if (!$this->db->checkTable($this->table)) {
                     $options = "
                         `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -865,10 +869,11 @@ if ($enableCommentModule) {
                         $this->db->createTable($this->table, $options);
                     } catch (Exception $e) {
                         error_log($e->getMessage());
-                        echo "An error occurred while creating the comments table.";
+                        echo "An error occurred while creating the comments table: " . $e->getMessage() . "<br>";
                     }
                 }
             }
+            
 
             public function addComment($product_id, $comment, $user_uid = null, $rating = null) {
                 if (!$this->user->isLoggedIn()) {
