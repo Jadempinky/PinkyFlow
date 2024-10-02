@@ -11,6 +11,10 @@ DOING ---> Add reviews, comments, and rating
 DOING ---> Add a cart and change certain functions to check for role
 
 
+Add global taxe variable that affects everything for the shop
+
+Censor for comments and reviews (Check for links and same messages over and over again)
+Flash sales with time countdown
 Add easy discount function
 Get the best rated items with a function getting $num of them
 When doing the js file, link it to the DB for shop autocompletion
