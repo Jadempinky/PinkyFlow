@@ -38,34 +38,27 @@ ADD CATEGORY TO SHOP ITEMS
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 */
 
-if (!isset($enableDatabase)) {
-    $enableDatabase = false;
-}
-if (!isset($enableUserModule)) {
-    $enableUserModule = false;
-}
-if (!isset($enableShoppingModule)) {
-    $enableShoppingModule = false;
-}
-if (!isset($enableCommentModule)) {
-    $enableCommentModule = false;
-}
+// You can add other configuration variables as needed
+
+// Configuration Class
+// Include config.php to get configuration variables
+
+
 
 // Update conditional checks accordingly
-if ($enableUserModule) {
-    $enableDatabase = true; // Ensure database is enabled if user functionality is required
+if (Config::$enableUserModule) {
+    Config::$enableDatabase = true; // Ensure database is enabled if user functionality is required
 }
-if ($enableShoppingModule) {
-    $enableDatabase = true; // Ensure database is enabled if shopping functionality is required
-    $enableUserModule = true;
+if (Config::$enableShoppingModule) {
+    Config::$enableDatabase = true;
+    Config::$enableUserModule = true;
+}
+if (Config::$enableCommentModule) {
+    Config::$enableDatabase = true;
+    Config::$enableUserModule = true;
 }
 
-if ($enableCommentModule) {
-    $enableDatabase = true;
-    $enableUserModule = true;
-}
-
-if ($enableDatabase) {
+if (Config::$enableDatabase) {
     if (!class_exists('PinkyFlowDB')) {
         class PinkyFlowDB {
             private $host;
@@ -152,6 +145,11 @@ if ($enableDatabase) {
                 return $stmt->rowCount() > 0;
             }
 
+            public function getLastInsertId() {
+                return $this->conn->lastInsertId();
+            }
+            
+
             public function verifyDatabase() {
                 $sql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = :dbName";
                 try {
@@ -175,7 +173,129 @@ if ($enableDatabase) {
     }
 }
 
-if ($enableUserModule) {
+if (Config::$enableCommentModule) {
+    if (!class_exists('PinkyFlowComment')) {
+        class PinkyFlowComment {
+            private $db;
+            private $user;
+            private $table;
+
+            public function __construct($db, $user) {
+                $this->db = $db;
+                $this->user = $user;
+                $this->table = 'comments';
+                $this->verifyTable();
+            }
+
+            public function verifyTable() {
+                if (!$this->db->checkTable($this->table)) {
+                    $options = "
+                        `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        `uid` VARCHAR(255) NOT NULL,
+                        `rating` INT,
+                        `comment_parent` VARCHAR(255) NOT NULL,
+                        `comment` TEXT NOT NULL,
+                        `added_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (`uid`) REFERENCES `users`(`uid`) ON DELETE CASCADE,
+                        FOREIGN KEY (`comment_parent`) REFERENCES `products`(`product_id`) ON DELETE CASCADE
+                    ";
+                    try {
+                        $this->db->createTable($this->table, $options);
+                    } catch (Exception $e) {
+                        error_log($e->getMessage());
+                        echo "An error occurred while creating the comments table: " . $e->getMessage() . "<br>";
+                    }
+                }
+            }
+            
+
+            public function addComment($product_id, $comment, $user_uid = null, $rating = null) {
+                if (!$this->user->isLoggedIn()) {
+                    throw new Exception("User must be logged in to add comments.");
+                }
+                if ($user_uid === null) {
+                    $user_uid = $this->user->getUid();
+                }
+                $uid = $user_uid;
+                $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `comment_parent`, `comment`" . ($rating !== null ? ", `rating`" : "") . ") VALUES (:uid, :comment_parent, :comment" . ($rating !== null ? ", :rating" : "") . ")");
+                $stmt->execute([
+                    'uid' => $uid,
+                    'comment_parent' => $product_id,
+                    'comment' => $comment,
+                    'rating' => $rating
+                ]);
+            }
+
+            public function getComments($product_id) {
+                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchAll();
+            }
+
+            public function deleteComment($comment_id) {
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `id` = :id");
+                $stmt->execute(['id' => $comment_id]);
+            }
+
+            public function editComment($comment_id, $comment) {
+                $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `comment` = :comment WHERE `id` = :id");
+                $stmt->execute(['comment' => $comment, 'id' => $comment_id]);
+            }
+
+            public function getComment($comment_id) {
+                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `id` = :id");
+                $stmt->execute(['id' => $comment_id]);
+                return $stmt->fetch();
+            }
+
+            public function clearComments($product_id) {
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+            }
+
+            public function clearAllComments() {
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}`");
+                $stmt->execute();
+            }
+
+            public function getCommentCount($product_id) {
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchColumn();
+            }
+
+            public function getRating($product_id) {
+                $stmt = $this->db->prepare("SELECT AVG(`rating`) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchColumn();
+            }
+
+            public function getRatingCount($product_id) {
+                $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchColumn();
+            }
+
+            public function getRatings($product_id) {
+                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+                return $stmt->fetchAll();
+            }
+
+            public function deleteRating($product_id) {
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
+                $stmt->execute(['comment_parent' => $product_id]);
+            }
+
+            public function deleteAllRatings() {
+                $stmt = $this->db->prepare("DELETE FROM `{$this->table}`");
+                $stmt->execute();
+            }
+        }
+    }
+}
+
+if (Config::$enableUserModule) {
     if (!class_exists('PinkyFlowUser')) {
         class PinkyFlowUser {
             private $username;
@@ -186,21 +306,15 @@ if ($enableUserModule) {
             private $table;
             public $sessionname;
             public $comment;
-            
 
             public function __construct($db) {
-                global $enableCommentModule; // Declare as global
                 $this->db = $db;
                 $this->table = 'users';
                 $this->role = 'user';
                 $this->sessionname = "pinkyflow_user";
-                
-                if ($enableCommentModule) {
-                    $this->comment = new PinkyFlowComment($db, $this);
-                } else {
-                    $this->comment = "A";
-                }
-            
+
+                $this->comment = null;
+
                 if (session_status() == PHP_SESSION_NONE) {
                     session_name($this->sessionname);
                     session_start();
@@ -208,9 +322,24 @@ if ($enableUserModule) {
                 if (isset($_SESSION['uid'])) {
                     $this->uid = $_SESSION['uid'];
                 }
-            
+
                 $this->Verify();
+                $this->getComment();
             }
+
+            public function getComment() {
+                if ($this->comment === null && Config::$enableCommentModule) {
+                    $commentClassName = 'PinkyFlowComment';
+                    if (class_exists($commentClassName)) {
+                        $this->comment = new $commentClassName($this->db, $this);
+                    } else {
+                        // Handle the case where the class doesn't exist
+                        $this->comment = null;
+                    }
+                }
+                return $this->comment;
+            }
+        
             
 
             public function verifyPassword($inputPassword) {
@@ -382,7 +511,7 @@ if ($enableUserModule) {
     }
 }
 
-if ($enableShoppingModule) {
+if (Config::$enableShoppingModule) {
     if (!class_exists('PinkyFlowProduct')) {
         class PinkyFlowProduct {
             private $db;
@@ -404,7 +533,9 @@ if ($enableShoppingModule) {
                         `price` DECIMAL(10, 2) NOT NULL,
                         `stock` INT NOT NULL DEFAULT 0,
                         `image` VARCHAR(255),
-                        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        `category_id` INT,
+                        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE SET NULL
                     ";
                     try {
                         $this->db->createTable($this->table, $options);
@@ -414,20 +545,29 @@ if ($enableShoppingModule) {
                     }
                 }
             }
+            
 
-            public function createProduct($name, $description, $price, $stock, $image) {
-                $product_id = uniqid('', true); // More unique product_id
-                $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`product_id`, `name`, `description`, `price`, `stock`, `image`) VALUES (:product_id, :name, :description, :price, :stock, :image)");
+            public function createProduct($name, $description, $price, $stock, $image, $category_id = null) {
+                $product_id = uniqid('', true);
+                $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`product_id`, `name`, `description`, `price`, `stock`, `image`, `category_id`) VALUES (:product_id, :name, :description, :price, :stock, :image, :category_id)");
                 $stmt->execute([
                     'product_id' => $product_id,
                     'name' => $name,
                     'description' => $description,
                     'price' => $price,
                     'stock' => $stock,
-                    'image' => $image
+                    'image' => $image,
+                    'category_id' => $category_id
                 ]);
                 return $product_id;
             }
+            
+            public function getProductsByCategory($category_id) {
+                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `category_id` = :category_id");
+                $stmt->execute(['category_id' => $category_id]);
+                return $stmt->fetchAll();
+            }
+            
 
             public function updateStock($product_id, $quantity) {
                 $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `stock` = :stock WHERE `product_id` = :product_id");
@@ -558,17 +698,43 @@ if ($enableShoppingModule) {
             public $user;
             private $product;
             private $cart;
-            private $favorite; // Added for favorites
-            private $wishlist; // Added for wishlist
-
+            private $favorite;
+            private $wishlist;
+            private $category; // Added for categories
+        
             public function __construct($db, $user) {
                 $this->db = $db;
                 $this->user = $user;
                 $this->product = new PinkyFlowProduct($db);
                 $this->cart = new PinkyFlowCart($db, $user);
-                $this->favorite = new PinkyFlowFavorite($db, $user); // Initialize favorites
-                $this->wishlist = new PinkyFlowWishlist($db, $user); // Initialize wishlist
+                $this->favorite = new PinkyFlowFavorite($db, $user);
+                $this->wishlist = new PinkyFlowWishlist($db, $user);
+                $this->category = new PinkyFlowCategory($db); // Initialize categories
             }
+
+            // Category Management
+            public function createCategory($name, $description = '', $image = '', $parent_id = null) {
+                return $this->category->createCategory($name, $description, $image, $parent_id);
+            }
+
+            public function getCategoryById($id) {
+                return $this->category->getCategoryById($id);
+            }
+
+            public function getAllCategories() {
+                return $this->category->getAllCategories();
+            }
+
+            // Update product creation to include category_id
+            public function addProduct($name, $description, $price, $stock, $image, $category_id = null) {
+                return $this->product->createProduct($name, $description, $price, $stock, $image, $category_id);
+            }
+
+            // Add method to get products by category
+            public function getProductsByCategory($category_id) {
+                return $this->product->getProductsByCategory($category_id);
+            }
+
 
             public function listProducts() {
                 return $this->product->getAllProducts();
@@ -576,10 +742,6 @@ if ($enableShoppingModule) {
 
             public function viewProduct($product_id) {
                 return $this->product->getProduct($product_id);
-            }
-
-            public function addProduct($name, $description, $price, $stock, $image) {
-                return $this->product->createProduct($name, $description, $price, $stock, $image);
             }
 
             public function updateProductStock($product_id, $quantity) {
@@ -663,6 +825,117 @@ if ($enableShoppingModule) {
                 return $this->wishlist;
             }
         }
+
+        if (!class_exists('PinkyFlowCategory')) {
+            class PinkyFlowCategory {
+                private $db;
+                private $table;
+        
+                public function __construct($db) {
+                    $this->db = $db;
+                    $this->table = 'categories';
+                    $this->verifyTable();
+                }
+        
+                private function verifyTable() {
+                    if (!$this->db->checkTable($this->table)) {
+                        $options = "
+                            `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                            `name` VARCHAR(255) NOT NULL UNIQUE,
+                            `description` TEXT,
+                            `image` VARCHAR(255),
+                            `parent_id` INT,
+                            FOREIGN KEY (`parent_id`) REFERENCES `{$this->table}`(`id`) ON DELETE CASCADE
+                        ";
+                        try {
+                            $this->db->createTable($this->table, $options);
+                        } catch (Exception $e) {
+                            error_log($e->getMessage());
+                            echo "An error occurred while creating the categories table.";
+                        }
+                    }
+                }
+        
+                // Function to create a category with similarity check
+                public function createCategory($name, $description = '', $image = '', $parent_id = null) {
+                    // Check for similar category names up to 80% similarity
+                    $similarCategories = $this->getSimilarCategories($name, 80);
+                    if (!empty($similarCategories)) {
+                        throw new Exception("A similar category name already exists.");
+                    }
+        
+                    // Insert new category
+                    $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`name`, `description`, `image`, `parent_id`) VALUES (:name, :description, :image, :parent_id)");
+                    $stmt->execute([
+                        'name' => $name,
+                        'description' => $description,
+                        'image' => $image,
+                        'parent_id' => $parent_id
+                    ]);
+        
+                    return $this->db->getLastInsertId();
+                }
+        
+                // Function to check for similar category names
+                public function getSimilarCategories($name, $similarityThreshold = 80) {
+                    $stmt = $this->db->prepare("SELECT `name` FROM `{$this->table}`");
+                    $stmt->execute();
+                    $categories = $stmt->fetchAll();
+        
+                    $similarCategories = [];
+                    foreach ($categories as $category) {
+                        similar_text(strtolower($name), strtolower($category['name']), $percent);
+                        if ($percent >= $similarityThreshold) {
+                            $similarCategories[] = $category['name'];
+                        }
+                    }
+                    return $similarCategories;
+                }
+        
+                // Additional methods for category management
+                public function getCategoryById($id) {
+                    $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `id` = :id");
+                    $stmt->execute(['id' => $id]);
+                    return $stmt->fetch();
+                }
+        
+                public function getCategoryByName($name) {
+                    $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `name` = :name");
+                    $stmt->execute(['name' => $name]);
+                    return $stmt->fetch();
+                }
+
+                public function getSubcategories($parent_id) {
+                    $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+                    $stmt->execute(['parent_id' => $parent_id]);
+                    return $stmt->fetchAll();
+                }
+                
+        
+                public function getAllCategories() {
+                    $stmt = $this->db->prepare("SELECT * FROM `{$this->table}`");
+                    $stmt->execute();
+                    return $stmt->fetchAll();
+                }
+        
+                public function updateCategory($id, $name, $description = '', $image = '', $parent_id = null) {
+                    $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `name` = :name, `description` = :description, `image` = :image, `parent_id` = :parent_id WHERE `id` = :id");
+                    $stmt->execute([
+                        'id' => $id,
+                        'name' => $name,
+                        'description' => $description,
+                        'image' => $image,
+                        'parent_id' => $parent_id
+                    ]);
+                }
+        
+                public function deleteCategory($id) {
+                    $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `id` = :id");
+                    $stmt->execute(['id' => $id]);
+                }
+            }
+        }
+        
     }
 
     // PinkyFlowFavorite Class
@@ -843,125 +1116,5 @@ if ($enableShoppingModule) {
     // Similarly, PinkyFlowShopWishlist Class is not needed as PinkyFlowWishlist handles wishlist functionality.
 }
 
-if ($enableCommentModule) {
-    if (!class_exists('PinkyFlowComment')) {
-        class PinkyFlowComment {
-            private $db;
-            private $user;
-            private $table;
 
-            public function __construct($db, $user) {
-                $this->db = $db;
-                $this->user = $user;
-                $this->table = 'comments';
-                $this->verifyTable();
-            }
-
-            public function verifyTable() {
-                if (!$this->db->checkTable($this->table)) {
-                    $options = "
-                        `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                        `uid` VARCHAR(255) NOT NULL,
-                        `rating` INT,
-                        `comment_parent` VARCHAR(255) NOT NULL,
-                        `comment` TEXT NOT NULL,
-                        `added_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (`uid`) REFERENCES `users`(`uid`) ON DELETE CASCADE,
-                        FOREIGN KEY (`comment_parent`) REFERENCES `products`(`product_id`) ON DELETE CASCADE
-                    ";
-                    try {
-                        $this->db->createTable($this->table, $options);
-                    } catch (Exception $e) {
-                        error_log($e->getMessage());
-                        echo "An error occurred while creating the comments table: " . $e->getMessage() . "<br>";
-                    }
-                }
-            }
-            
-
-            public function addComment($product_id, $comment, $user_uid = null, $rating = null) {
-                if (!$this->user->isLoggedIn()) {
-                    throw new Exception("User must be logged in to add comments.");
-                }
-                if ($user_uid === null) {
-                    $user_uid = $this->user->getUid();
-                }
-                $uid = $user_uid;
-                $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `comment_parent`, `comment`" . ($rating !== null ? ", `rating`" : "") . ") VALUES (:uid, :comment_parent, :comment" . ($rating !== null ? ", :rating" : "") . ")");
-                $stmt->execute([
-                    'uid' => $uid,
-                    'comment_parent' => $product_id,
-                    'comment' => $comment,
-                    'rating' => $rating
-                ]);
-            }
-
-            public function getComments($product_id) {
-                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-                $stmt->execute(['comment_parent' => $product_id]);
-                return $stmt->fetchAll();
-            }
-
-            public function deleteComment($comment_id) {
-                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `id` = :id");
-                $stmt->execute(['id' => $comment_id]);
-            }
-
-            public function editComment($comment_id, $comment) {
-                $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `comment` = :comment WHERE `id` = :id");
-                $stmt->execute(['comment' => $comment, 'id' => $comment_id]);
-            }
-
-            public function getComment($comment_id) {
-                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `id` = :id");
-                $stmt->execute(['id' => $comment_id]);
-                return $stmt->fetch();
-            }
-
-            public function clearComments($product_id) {
-                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-                $stmt->execute(['comment_parent' => $product_id]);
-            }
-
-            public function clearAllComments() {
-                $stmt = $this->db->prepare("DELETE FROM `{$this->table}`");
-                $stmt->execute();
-            }
-
-            public function getCommentCount($product_id) {
-                $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-                $stmt->execute(['comment_parent' => $product_id]);
-                return $stmt->fetchColumn();
-            }
-
-            public function getRating($product_id) {
-                $stmt = $this->db->prepare("SELECT AVG(`rating`) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-                $stmt->execute(['comment_parent' => $product_id]);
-                return $stmt->fetchColumn();
-            }
-
-            public function getRatingCount($product_id) {
-                $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-                $stmt->execute(['comment_parent' => $product_id]);
-                return $stmt->fetchColumn();
-            }
-
-            public function getRatings($product_id) {
-                $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-                $stmt->execute(['comment_parent' => $product_id]);
-                return $stmt->fetchAll();
-            }
-
-            public function deleteRating($product_id) {
-                $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-                $stmt->execute(['comment_parent' => $product_id]);
-            }
-
-            public function deleteAllRatings() {
-                $stmt = $this->db->prepare("DELETE FROM `{$this->table}`");
-                $stmt->execute();
-            }
-        }
-    }
-}
 ?>
