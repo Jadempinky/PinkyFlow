@@ -15,47 +15,57 @@ class Comment {
     }
 
     public function verifyTable() {
-        if (!$this->db->checkTable($this->table)) {
-            $options = "
+        $sql = "
+            CREATE TABLE IF NOT EXISTS `comments` (
                 `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 `uid` VARCHAR(255) NOT NULL,
-                `rating` INT,
-                `comment_parent` VARCHAR(255) NOT NULL,
+                `parent_id` INT DEFAULT NULL,
+                `rating` INT NULL,
                 `comment` TEXT NOT NULL,
+                `reply_to` INT DEFAULT NULL,
                 `added_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (`uid`) REFERENCES `users`(`uid`) ON DELETE CASCADE,
-                FOREIGN KEY (`comment_parent`) REFERENCES `products`(`product_id`) ON DELETE CASCADE
-            ";
-            try {
-                $this->db->createTable($this->table, $options);
-            } catch (Exception $e) {
-                error_log($e->getMessage());
-                echo "An error occurred while creating the comments table: " . $e->getMessage() . "<br>";
-            }
+                FOREIGN KEY (`reply_to`) REFERENCES `comments`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+        ";
+    
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            echo "Comments table created successfully!<br>";
+        } catch (\PDOException $e) {
+            echo "Error creating the comments table: " . $e->getMessage() . "<br>";
+            error_log($e->getMessage());
+        }
+    }
+    
+    
+    
+    
+
+    public function addComment($userId, $parentId, $content, $rating = null, $replyTo = null) {
+        $sql = "INSERT INTO comments (uid, parent_id, comment, rating, reply_to) 
+                VALUES (:uid, :parent_id, :comment, :rating, :reply_to)";
+        $stmt = $this->db->prepare($sql);
+    
+        try {
+            $stmt->execute([
+                'uid' => $userId,
+                'parent_id' => $parentId,
+                'comment' => $content,
+                'rating' => $rating,
+                'reply_to' => $replyTo
+            ]);
+            echo "Comment added successfully!";
+        } catch (\PDOException $e) {
+            throw new \Exception("Error adding comment: " . $e->getMessage());
         }
     }
     
 
-    public function addComment($product_id, $comment, $user_uid = null, $rating = null) {
-        if (!$this->user->isLoggedIn()) {
-            throw new Exception("User must be logged in to add comments.");
-        }
-        if ($user_uid === null) {
-            $user_uid = $this->user->getUid();
-        }
-        $uid = $user_uid;
-        $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `comment_parent`, `comment`" . ($rating !== null ? ", `rating`" : "") . ") VALUES (:uid, :comment_parent, :comment" . ($rating !== null ? ", :rating" : "") . ")");
-        $stmt->execute([
-            'uid' => $uid,
-            'comment_parent' => $product_id,
-            'comment' => $comment,
-            'rating' => $rating
-        ]);
-    }
-
     public function getComments($product_id) {
-        $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-        $stmt->execute(['comment_parent' => $product_id]);
+        $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+        $stmt->execute(['parent_id' => $product_id]);
         return $stmt->fetchAll();
     }
 
@@ -76,8 +86,8 @@ class Comment {
     }
 
     public function clearComments($product_id) {
-        $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-        $stmt->execute(['comment_parent' => $product_id]);
+        $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+        $stmt->execute(['parent_id' => $product_id]);
     }
 
     public function clearAllComments() {
@@ -86,37 +96,38 @@ class Comment {
     }
 
     public function getCommentCount($product_id) {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-        $stmt->execute(['comment_parent' => $product_id]);
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+        $stmt->execute(['parent_id' => $product_id]);
         return $stmt->fetchColumn();
     }
 
     public function getRating($product_id) {
-        $stmt = $this->db->prepare("SELECT AVG(`rating`) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-        $stmt->execute(['comment_parent' => $product_id]);
+        $stmt = $this->db->prepare("SELECT AVG(`rating`) FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+        $stmt->execute(['parent_id' => $product_id]);
         return $stmt->fetchColumn();
     }
 
     public function getRatingCount($product_id) {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-        $stmt->execute(['comment_parent' => $product_id]);
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+        $stmt->execute(['parent_id' => $product_id]);
         return $stmt->fetchColumn();
     }
 
     public function getRatings($product_id) {
-        $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-        $stmt->execute(['comment_parent' => $product_id]);
+        $stmt = $this->db->prepare("SELECT * FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+        $stmt->execute(['parent_id' => $product_id]);
         return $stmt->fetchAll();
     }
 
     public function deleteRating($product_id) {
-        $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `comment_parent` = :comment_parent");
-        $stmt->execute(['comment_parent' => $product_id]);
+        $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `parent_id` = :parent_id");
+        $stmt->execute(['parent_id' => $product_id]);
     }
 
     public function deleteAllRatings() {
         $stmt = $this->db->prepare("DELETE FROM `{$this->table}`");
         $stmt->execute();
     }
+
 }
 ?>

@@ -16,12 +16,12 @@ class PinkyFlowDB {
         $this->db = $db;
         $dsn = "mysql:host={$this->host}";
         $options = [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION, // Use \PDO to reference the global PDO class
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
         ];
         try {
-            $this->conn = new PDO($dsn, $this->user, $this->pass, $options);
-        } catch (PDOException $e) {
+            $this->conn = new \PDO($dsn, $this->user, $this->pass, $options); // Use \PDO here
+        } catch (\PDOException $e) { // Use \PDOException for handling PDO-specific exceptions
             die("Database connection failed: " . $e->getMessage());
         }
 
@@ -31,8 +31,8 @@ class PinkyFlowDB {
 
         $dsn = "mysql:host={$this->host};dbname={$this->db};charset=utf8mb4";
         try {
-            $this->conn = new PDO($dsn, $this->user, $this->pass, $options);
-        } catch (PDOException $e) {
+            $this->conn = new \PDO($dsn, $this->user, $this->pass, $options); // Use \PDO again here
+        } catch (\PDOException $e) {
             die("Database selection failed: " . $e->getMessage());
         }
     }
@@ -47,9 +47,9 @@ class PinkyFlowDB {
             $stmt = $this->conn->prepare($sql);
             $stmt->execute($params);
             return $stmt;
-        } catch (PDOException $e) {
+        } catch (\PDOException $e) { // Use \PDOException for exception handling
             error_log($e->getMessage());
-            throw new Exception("An error occurred while executing the query.");
+            throw new \Exception("An error occurred while executing the query.");
         }
     }
 
@@ -89,26 +89,23 @@ class PinkyFlowDB {
     public function getLastInsertId() {
         return $this->conn->lastInsertId();
     }
-    
 
     public function verifyDatabase() {
         $sql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = :dbName";
         try {
             $stmt = $this->conn->prepare($sql);
             $stmt->execute(['dbName' => $this->db]);
-            $result = $stmt->fetch(); // This could return false if the schema doesn't exist
+            $result = $stmt->fetch();
 
             if ($result === false) {
-                // Database does not exist
                 return false;
             }
 
             return true;
-        } catch (PDOException $e) {
+        } catch (\PDOException $e) {
             error_log("Database verification failed: " . $e->getMessage());
             return false;
         }
     }
-
 }
 ?>
