@@ -190,32 +190,38 @@ try {
     // Recursive function to display comments and replies
     function displayComments($comments, $parentId = null, $depth = 0) {
         foreach ($comments as $commentData) {
-            // Check if the current comment is a direct child (reply) of the parent comment
             if ($commentData['reply_to'] == $parentId) {
-                $class = $parentId ? 'reply' : 'comment';  // Set class based on whether it's a reply or a root comment
-    
-                // Indentation for replies
-                $indent = str_repeat('&nbsp;', $depth * 5);
-    
-                echo "<div class='$class'>";
-                echo "<p>{$indent}<strong>User #{$commentData['uid']}:</strong> {$commentData['comment']} <br>";
-                echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "</p>";
-                echo "<form method='POST'>
+                if ($depth > 0) {
+                    echo "<p class='comment-reply'><strong>User #{$commentData['uid']}:</strong> {$commentData['comment']} <br>";
+                    echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "<br>";
+                    echo "<form method='POST'>
                         <input type='hidden' name='reply_to' value='{$commentData['id']}'>
                         <textarea name='reply_comment' placeholder='Reply...'></textarea>
                         <button type='submit' name='reply'>Reply</button>
                     </form>";
-                echo "</div>";
-    
-                // Recursively display replies for the current comment
+                    echo "</p>";
+                } else {
+                    echo "<p class='comment'><strong>User #{$commentData['uid']}:</strong> {$commentData['comment']} <br>";
+                    echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "<br>";
+                    echo "</p>";
+                    echo "<form method='POST'>
+                        <input type='hidden' name='reply_to' value='{$commentData['id']}'>
+                        <textarea name='reply_comment' placeholder='Reply...'></textarea>
+                        <button type='submit' name='reply'>Reply</button>
+                    </form>";
+                }
+                echo str_repeat('&nbsp;', $depth * 5);  // Indent based on depth
+                
+                // Recursively display replies
                 displayComments($comments, $commentData['id'], $depth + 1);
             }
         }
     }
-} catch (Exception $e) {
-    echo "Error retrieving comments: " . $e->getMessage() . "<br>";
-}
     
+    displayComments($comments);  // Start displaying comments and replies
+} catch (Exception $e) {
+    echo "Error displaying comments: " . $e->getMessage();
+}
 
 ?>
 
