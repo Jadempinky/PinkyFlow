@@ -1,88 +1,189 @@
-# PinkyFlow PHP Library
 
-## Overview
+# PinkyFlow
 
-PinkyFlow is a modular PHP library designed to manage user accounts, shopping carts, wishlists, favorites, product reviews, comments, and database interactions in an ecommerce or similar application. The library supports customizable modules and is extensible to fit various use cases.
+PinkyFlow est un framework PHP modulaire conçu pour fournir une base flexible et facile à utiliser pour la création d'applications web. Il offre une gamme de modules, notamment l'authentification des utilisateurs, la gestion des paniers d'achats, les commentaires et les avis, et bien plus encore. Le framework est conçu pour être facilement configurable, même pour les utilisateurs ayant peu d'expérience en codage.
 
----
+## Fonctionnalités
 
-## Features
+- **Conception modulaire** : Activez ou désactivez les modules selon vos besoins via un simple fichier de configuration.
+- **Authentification utilisateur** : Inscription, connexion et gestion des sessions utilisateur.
+- **Module de Shopping** : Gestion des produits, panier d'achat, liste de souhaits et favoris.
+- **Module de Commentaires** : Ajoutez des commentaires et des avis sur les produits.
+- **Configuration facile** : Un fichier `config.php` simple pour ajuster les paramètres sans toucher au code principal.
+- **Configuration automatique** : Crée automatiquement les fichiers de configuration et les tables de base de données nécessaires.
 
-### General
-- **Modular System:** Enable or disable specific features such as user management, shopping, and comments.
-- **Database Management:** Includes a PinkyFlowDB class to handle database connections, table creation, and querying.
-- **User Authentication:** Register, login, logout, and manage user sessions, roles, and email updates.
-  
-### Shopping Module
-- **Cart Management:** Add, remove, view, and clear items in the user's cart.
-- **Product Management:** Add products to a catalog, update stock levels, and view product details.
-- **Favorites:** Users can add items to a favorites list.
-- **Wishlist:** Users can add items to a wishlist, separate from favorites.
-- **Checkout System:** Check the cart and ensure stock availability before confirming purchases.
+## Table des Matières
 
-### User Module
-- **Role Management:** Assign roles to users, which can control access to features like the cart.
-- **User Sessions:** Maintain sessions for logged-in users, supporting logout and session clearing.
+- [Exigences](#exigences)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Utilisation](#utilisation)
+  - [Initialisation du Framework](#initialisation-du-framework)
+  - [Inscription d'un utilisateur](#inscription-dun-utilisateur)
+  - [Gestion des produits](#gestion-des-produits)
+  - [Commentaires et avis](#commentaires-et-avis)
+- [Contribuer](#contribuer)
+- [Licence](#licence)
 
-### Comment Module
-- **Product Reviews and Comments:** Add comments or reviews to products, with functionality to edit, delete, or fetch comments.
-  
----
+## Exigences
 
-## Usage Instructions
+- PHP 7.4 ou supérieur
+- MySQL 5.7 ou supérieur (ou base de données compatible)
+- Serveur web (Apache, Nginx, etc.)
+- Composer (recommandé pour la gestion des dépendances et le chargement automatique)
 
-### Installation
-1. Clone or download the PinkyFlow PHP library.
-2. Initialize the database connection by setting up the `PinkyFlowDB` class in your application.
-3. Include the necessary modules:
-   - `PinkyFlowUser` for user management
-   - `PinkyFlowProduct` for product catalog and shopping
-   - `PinkyFlowCart` for cart functionalities
-   - `PinkyFlowComment` for comment and review management
+## Installation
 
-### Example: Enabling Modules
+1. **Cloner le dépôt**
+
+   ```bash
+   git clone https://github.com/votrenomutilisateur/PinkyFlow.git
+   ```
+
+2. **Naviguer dans le répertoire du projet**
+
+   ```bash
+   cd PinkyFlow
+   ```
+
+3. **Installer les dépendances (optionnel mais recommandé)**
+
+   Si vous utilisez Composer pour la gestion des dépendances :
+
+   ```bash
+   composer install
+   ```
+
+4. **Configurer le serveur web**
+
+   Configurez votre serveur web pour qu'il serve le répertoire du projet. Assurez-vous que le répertoire racine du document est configuré correctement.
+
+## Configuration
+
+PinkyFlow utilise un fichier `config.php` pour les paramètres de configuration. Le framework génère automatiquement ce fichier s'il n'existe pas.
+
+1. **Générer le fichier `config.php`**
+
+   Le framework créera un fichier `config.php` avec les paramètres par défaut lors de la première exécution. Vous pouvez également le créer manuellement :
+
+   ```php
+   <?php
+   // config.php
+
+   // Variables de configuration
+   $enableDatabase = true;       // Activer ou désactiver le module de base de données
+   $enableUserModule = true;     // Activer ou désactiver l'authentification des utilisateurs
+   $enableShoppingModule = true; // Activer ou désactiver les fonctionnalités de shopping
+   $enableCommentModule = true;  // Activer ou désactiver le système de commentaires
+
+   // Informations d'identification de la base de données
+   $dbHost = 'localhost'; // Hôte de la base de données
+   $dbUser = 'root';      // Nom d'utilisateur de la base de données
+   $dbPass = '';          // Mot de passe de la base de données
+   $dbName = 'pinkyflow'; // Nom de la base de données
+
+   ?>
+   ```
+
+2. **Modifier le fichier `config.php`**
+
+   Ouvrez le fichier `config.php` dans un éditeur de texte et ajustez les paramètres selon vos besoins. Assurez-vous de définir correctement les informations d'identification de votre base de données.
+
+## Utilisation
+
+### Initialisation du Framework
+
+Incluez le script d'initialisation dans vos fichiers PHP pour accéder aux fonctionnalités du framework.
+
 ```php
-// Enable specific modules
-$enableDatabase = true;
-$enableUserModule = true;
-$enableShoppingModule = true;
-$enableCommentModule = false;
+<?php
+// Inclure le fichier principal PinkyFlow
+require_once 'path/to/PinkyFlow.php';
 
-// Initialize the DB connection
-$db = new PinkyFlowDB('host', 'user', 'password', 'database_name');
+// Charger les objets PinkyFlow
+$PinkyFlowObjects = pinkyflow_load_objects();
 
-// Enable user functionality
-$user = new PinkyFlowUser($db);
-
-// Enable product and shopping functionalities
-$shop = new PinkyFlowShop($db, $user);
+// Accéder aux objets initialisés
+$db = $PinkyFlowObjects['PinkyFlowDB'] ?? null;
+$user = $PinkyFlowObjects['PinkyFlowUser'] ?? null;
+$shop = $PinkyFlowObjects['PinkyFlowShop'] ?? null;
+$comment = $PinkyFlowObjects['PinkyFlowComment'] ?? null;
+?>
 ```
 
-### Example: Adding a Product
+### Inscription d'un utilisateur
+
+Pour inscrire un nouvel utilisateur :
+
 ```php
-$shop->addProduct('Shirt', 'A comfortable cotton shirt.', 25.99, 100, 'shirt_image.jpg');
+<?php
+if ($user) {
+    try {
+        $username = 'newuser';
+        $password = 'securepassword123';
+        $user->register($username, $password);
+        echo 'Utilisateur inscrit avec succès !';
+    } catch (Exception $e) {
+        echo 'Erreur : ' . $e->getMessage();
+    }
+}
+?>
 ```
 
-### Example: Adding to Cart
+### Gestion des produits
+
+Ajouter un nouveau produit :
+
 ```php
-$shop->addToCart('product_id_here', 1);
+<?php
+if ($shop) {
+    $productData = [
+        'name' => 'Produit Exemple',
+        'description' => 'Ceci est un produit exemple.',
+        'price' => 19.99,
+        // Ajouter d'autres champs de produit si nécessaire
+    ];
+    $shop->addProduct($productData);
+    echo 'Produit ajouté avec succès !';
+}
+?>
 ```
+
+### Commentaires et avis
+
+Ajouter un commentaire et une note à un produit :
+
+```php
+<?php
+if ($comment && $user && $user->isLoggedIn()) {
+    $productId = 'produit123';
+    $commentText = 'Super produit !';
+    $rating = 5;
+    try {
+        $comment->addComment($productId, $commentText, null, $rating);
+        echo 'Commentaire ajouté avec succès !';
+    } catch (Exception $e) {
+        echo 'Erreur : ' . $e->getMessage();
+    }
+}
+?>
+```
+
+## Contribuer
+
+Les contributions sont les bienvenues ! Suivez ces étapes :
+
+1. Forker le dépôt.
+2. Créer une nouvelle branche pour votre fonctionnalité ou correction de bug.
+3. Apportez vos modifications et validez-les avec des messages clairs.
+4. Soumettez une pull request sur la branche `main`.
+
+Assurez-vous que votre code suit les normes de codage du projet et inclut des tests appropriés.
+
+## Licence
+
+Ce projet est sous licence [MIT License](LICENSE).
 
 ---
 
-## Future Plans
-- **Review and Rating System:** Allow users to leave ratings for products, visible in product details.
-- **Category and Subcategory Management:** Add categories for better product organization.
-- **JavaScript Autocomplete:** Add shop autocompletion features in the frontend.
-- **Enhanced Role Management:** Refine role-based access control for specific cart functionalities.
-
----
-
-## Known Issues & Things to Watch Out For
-- **Database Connection Errors:** If the database setup is incorrect or unavailable, it will result in a failed connection. Ensure correct database credentials.
-- **Session Management:** Make sure sessions are initialized properly. Otherwise, login and cart features might malfunction.
-- **Product Stock Issues:** Ensure the product stock count is accurate, as the checkout process does not handle negative stock situations automatically yet.
-- **Duplicate Entries:** Be cautious when adding favorites or wishlist items, as adding duplicates can raise exceptions.
-  
-If any issues arise or new features are needed, please refer to the library’s documentation or contact the developer.
-
+*Remarque : Remplacez `votrenomutilisateur` dans l'URL de clonage Git par votre nom d'utilisateur GitHub. Assurez-vous de mettre à jour tous les chemins ou espaces réservés avec les valeurs réelles de votre projet.*
