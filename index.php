@@ -224,11 +224,11 @@
         echo "<input type='submit' name='add_comment' value='Add comment'>";
         echo "</form>";
 
-        function displayComments($comments, $parentId = null, $depth = 0) {
+        function displayComments($comments, $user, $parentId = null, $depth = 0) {
             foreach ($comments as $commentData) {
                 if ($commentData['reply_to'] == $parentId) {
                     $commentClass = 'comment' . ($commentData['reply_to'] ? ' comment-reply' : '');
-                    echo "<p class='$commentClass'><strong>User #{$commentData['uid']}:</strong> {$commentData['comment']} <br>";
+                    echo "<p class='$commentClass'><strong>" . $user->getUsernameFromUid($commentData['uid']) . ":</strong> {$commentData['comment']} <br>";
                     echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "<br>";
                     echo "<button class='reply-button' onclick='toggleReplyForm({$commentData['id']})'>Reply</button>";
                     echo "<div id='reply-form-{$commentData['id']}' class='reply-form'>
@@ -239,13 +239,13 @@
                         </form>
                     </div>";
                     echo "</p>";
-                    displayComments($comments, $commentData['id'], $depth + 1);
+                    displayComments($comments, $user, $commentData['id'], $depth + 1);
                 }
             }
         }
 
 
-        displayComments($comments);
+        displayComments($comments, $user);
     } catch (Exception $e) {
         echo "Error displaying comments: " . $e->getMessage();
     }

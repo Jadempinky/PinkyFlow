@@ -140,6 +140,13 @@ class User {
         return $user['username'];
     }
 
+    public function getUsernameFromUid($uid) {
+        $stmt = $this->db->prepare("SELECT `username` FROM `{$this->table}` WHERE `uid` = :uid");
+        $stmt->execute(['uid' => $uid]);
+        $user = $stmt->fetch();
+        return $user['username'];
+    }
+
     public function getEmail() {
         $stmt = $this->db->prepare("SELECT `email` FROM `{$this->table}` WHERE `uid` = :uid");
         $stmt->execute(['uid' => $this->uid]);
