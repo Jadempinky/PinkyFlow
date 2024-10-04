@@ -1,8 +1,3 @@
-<?php
-require_once __DIR__ . '/PinkyFlow.php';  // Load PinkyFlow
-
-// HTML structure for registration, login, comment submission, and display
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -114,149 +109,147 @@ require_once __DIR__ . '/PinkyFlow.php';  // Load PinkyFlow
     .comment-reply .comment {
         background-color: #eef7ff;
     }
-</style>
+
+    /* Hide reply form by default */
+    .reply-form {
+        display: none;
+        margin-top: 10px;
+    }
+
+    </style>
+
+    <script>
+        function toggleReplyForm(commentId) {
+            var form = document.getElementById('reply-form-' + commentId);
+            if (form.style.display === 'none' || form.style.display === '') {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+    </script>
 
 </head>
 <body>
     <?php
+
+    require_once __DIR__ . '/PinkyFlow.php';
+
     echo "<h1>Comment System Test</h1>";
-    
-    // Register a new user form
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
+
+    $userId = $user->getUid() ?? null;  // Get logged-in user ID
+
+    if ($userId) {
+        echo "<p>Welcome, user #$userId!</p>";
+    }
+
+    ?>
+    <form action="" method="post">
+        <h2>Register or Login</h2>
+        <label>Username: <input type="text" name="username"></label><br>
+        <label>Password: <input type="password" name="password"></label><br>
+        <input type="submit" name="register" value="Register">
+        <input type="submit" name="login" value="Login">
+        <input type="submit" name="logout" value="Logout">
+    </form>
+    <?php
+
+    if (isset($_POST['logout'])) {
+        $user->logout();
+        echo "User logged out successfully!<br>";
+        header("Refresh:0");
+    }
+
+    if (isset($_POST['register'])) {
         $username = $_POST['username'];
-    $password = $_POST['password'];
-    $email = $_POST['email'];
-
-    try {
-        $user->register($username, $password, $password, $email);
-        echo "User registered successfully!<br>";
-    } catch (Exception $e) {
-        echo "Error registering user: " . $e->getMessage() . "<br>";
-    }
-}
-
-// Log-in the user form
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    
-    try {
-        $user->login($username, $password);
-        echo "User logged in successfully!<br>";
-    } catch (Exception $e) {
-        echo "Error logging in user: " . $e->getMessage() . "<br>";
-    }
-}
-
-$userId = $user->getUid() ?? null;  // Get logged-in user ID
-
-if ($userId) {
-    echo "<p>Welcome, user #$userId!</p>";
-}
-
-// Comment form for logged-in users
-if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_comment'])) {
-    $productId = 101;  // Example product ID
-    $commentText = $_POST['comment'];
-    $rating = $_POST['rating'];
-    
-    try {
-        $comment->addComment($userId, $productId, $commentText, $rating);
-        echo "Comment added successfully!<br>";
-    } catch (Exception $e) {
-        echo "Error adding comment: " . $e->getMessage() . "<br>";
-    }
-}
-
-// Reply to a comment
-if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply'])) {
-    $productId = 101;  // Same product ID
-    $commentText = $_POST['reply_comment'];
-    $replyTo = $_POST['reply_to'];
-    
-    try {
-        $comment->addComment($userId, $productId, $commentText, null, $replyTo);
-        echo "Reply added successfully!<br>";
-    } catch (Exception $e) {
-        echo "Error adding reply: " . $e->getMessage() . "<br>";
-    }
-}
-
-// Display comments for a specific product (e.g., product with ID 101)
-echo "<h3>Comments for product ID 101:</h3>";
-try {
-    $comments = $comment->getComments(101);
-    
-    // Recursive function to display comments and replies
-    function displayComments($comments, $parentId = null, $depth = 0) {
-        foreach ($comments as $commentData) {
-            if ($commentData['reply_to'] == $parentId) {
-                if ($depth > 0) {
-                    echo "<p class='comment-reply'><strong>User #{$commentData['uid']}:</strong> {$commentData['comment']} <br>";
-                    echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "<br>";
-                    echo "<form method='POST'>
-                        <input type='hidden' name='reply_to' value='{$commentData['id']}'>
-                        <textarea name='reply_comment' placeholder='Reply...'></textarea>
-                        <button type='submit' name='reply'>Reply</button>
-                    </form>";
-                    echo "</p>";
-                } else {
-                    echo "<p class='comment'><strong>User #{$commentData['uid']}:</strong> {$commentData['comment']} <br>";
-                    echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "<br>";
-                    echo "</p>";
-                    echo "<form method='POST'>
-                        <input type='hidden' name='reply_to' value='{$commentData['id']}'>
-                        <textarea name='reply_comment' placeholder='Reply...'></textarea>
-                        <button type='submit' name='reply'>Reply</button>
-                    </form>";
-                }
-                echo str_repeat('&nbsp;', $depth * 5);  // Indent based on depth
-                
-                // Recursively display replies
-                displayComments($comments, $commentData['id'], $depth + 1);
-            }
+        $password = $_POST['password'];
+        $email = 'admin@' . $username . '.com';
+        try {
+            $user->register($username, $password, $password, $email);
+            echo "User registered successfully!<br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error registering user: " . $e->getMessage() . "<br>";
         }
     }
-    
-    displayComments($comments);  // Start displaying comments and replies
-} catch (Exception $e) {
-    echo "Error displaying comments: " . $e->getMessage();
-}
 
-?>
+    if (isset($_POST['login'])) {
+        $username = $_POST['username'];
+        $password = $_POST['password'];
+        try {
+            $user->login($username, $password);
+            echo "User logged in successfully!<br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error logging in user: " . $e->getMessage() . "<br>";
+        }
+    }
 
-<!-- Registration Form -->
-<h3>Register</h3>
-<form method="POST">
-    <label for="username">Username:</label>
-    <input type="text" name="username" required><br>
-    <label for="email">Email:</label>
-    <input type="email" name="email" required><br>
-    <label for="password">Password:</label>
-    <input type="password" name="password" required><br>
-    <button type="submit" name="register">Register</button>
-</form>
+    if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_comment'])) {
+        $productId = 101;
+        $commentText = $_POST['comment'];
+        $rating = $_POST['rating'];
+        try {
+            $comment->addComment($userId, $productId, $commentText, $rating);
+            echo "Comment added successfully!<br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error adding comment: " . $e->getMessage() . "<br>";
+        }
+    }
 
-<!-- Login Form -->
-<h3>Login</h3>
-<form method="POST">
-    <label for="username">Username:</label>
-    <input type="text" name="username" required><br>
-    <label for="password">Password:</label>
-    <input type="password" name="password" required><br>
-    <button type="submit" name="login">Login</button>
-</form>
+    // Reply to a comment
+    if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply'])) {
+        $productId = 101;
+        $commentText = $_POST['reply_comment'];
+        $replyTo = $_POST['reply_to'];
+        try {
+            $comment->addComment($userId, $productId, $commentText, null, $replyTo);
+            echo "Reply added successfully!<br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error adding reply: " . $e->getMessage() . "<br>";
+        }
+    }
 
-<!-- Add Comment Form (if logged in) -->
-<?php if ($userId): ?>
-    <h3>Add a Comment</h3>
-    <form method="POST">
-        <textarea name="comment" placeholder="Write your comment..." required></textarea><br>
-        <label for="rating">Rating (1-5):</label>
-        <input type="number" name="rating" min="1" max="5" required><br>
-        <button type="submit" name="add_comment">Submit Comment</button>
-    </form>
-    <?php endif; ?>
-    
+    // Display comments
+    echo "<h3>Comments for product ID 101:</h3>";
+    try {
+        $comments = $comment->getComments(101);
+        // Comment form
+        echo "<h3>Leave a comment:</h3>";
+        echo "<form method='post'>";
+        echo "<textarea name='comment' rows='4' cols='50' placeholder='Your comment...'></textarea> <br>";
+        echo "<input type='number' name='rating' min='0' max='5' step='0.5' placeholder='Rating (0-5)' required><br>";
+        echo "<input type='submit' name='add_comment' value='Add comment'>";
+        echo "</form>";
+
+        function displayComments($comments, $parentId = null, $depth = 0) {
+            foreach ($comments as $commentData) {
+                if ($commentData['reply_to'] == $parentId) {
+                    $commentClass = 'comment' . ($commentData['reply_to'] ? ' comment-reply' : '');
+                    echo "<p class='$commentClass'><strong>User #{$commentData['uid']}:</strong> {$commentData['comment']} <br>";
+                    echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "<br>";
+                    echo "<button class='reply-button' onclick='toggleReplyForm({$commentData['id']})'>Reply</button>";
+                    echo "<div id='reply-form-{$commentData['id']}' class='reply-form'>
+                        <form method='POST'>
+                            <input type='hidden' name='reply_to' value='{$commentData['id']}'>
+                            <textarea name='reply_comment' placeholder='Reply...'></textarea>
+                            <button type='submit' name='reply'>Submit Reply</button>
+                        </form>
+                    </div>";
+                    echo "</p>";
+                    displayComments($comments, $commentData['id'], $depth + 1);
+                }
+            }
+        }
+
+
+        displayComments($comments);
+    } catch (Exception $e) {
+        echo "Error displaying comments: " . $e->getMessage();
+    }
+    ?>
+
 </body>
 </html>
