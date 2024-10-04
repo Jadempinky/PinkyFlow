@@ -1,6 +1,12 @@
 <?php
 namespace PinkyFlow\Modules;
 
+/*
+
+Add a like / dislike feature for commens, like in disqus, with an overall rating for the comment
+*/
+
+
 use Exception;
 class Comment {
     private $db;
