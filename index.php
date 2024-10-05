@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Comment System with Like/Dislike</title>
     <style>
+    /* Styles for the page and comments */
     body {
         font-family: Arial, sans-serif;
         background-color: #f4f4f4;
@@ -105,17 +106,27 @@
         background-color: #218838;
     }
 
-    /* Nested replies styling */
-    .comment-reply .comment {
-        background-color: #eef7ff;
+    /* Styling for like/dislike buttons */
+    .like-button, .dislike-button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin-top: 5px;
+        transition: background-color 0.3s;
     }
 
-    /* Hide reply form by default */
-    .reply-form {
-        display: none;
-        margin-top: 10px;
+    .like-button:hover, .dislike-button:hover {
+        background-color: #0056b3;
     }
 
+    .likes-count, .dislikes-count {
+        display: inline-block;
+        margin-left: 5px;
+        font-weight: bold;
+    }
     </style>
 
     <script>
@@ -132,7 +143,6 @@
 </head>
 <body>
     <?php
-
     require_once __DIR__ . '/PinkyFlow.php';
 
     echo "<h1>Comment System Test</h1>";
@@ -140,10 +150,71 @@
     $userId = $user->getUid() ?? null;  // Get logged-in user ID
 
     if ($userId) {
-        echo "<p>Welcome, user #$userId!</p>";
+        echo "<p>Welcome, " . $user->getUsernameFromUid($userId) . "!</p>";
     }
 
+    // Register form
+    if (isset($_POST['register'])) {
+        $username = $_POST['username'];
+        $password = $_POST['password'];
+        $email = $username . '@example.com';
+        try {
+            $user->register($username, $password, $password, $email);
+            echo "Registered successfully! <br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error registering: " . $e->getMessage() . "<br>";
+        }
+    }
+
+    // Log-in form
+    if (isset($_POST['login'])) {
+        $username = $_POST['username'];
+        $password = $_POST['password'];
+        try {
+            $user->login($username, $password);
+            echo "Logged in successfully! <br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error logging in: " . $e->getMessage() . "<br>";
+        }
+    }
+
+    // Log-out form
+    if (isset($_POST['logout'])) {
+        try {
+            $user->logout();
+            echo "Logged out successfully! <br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error logging out: " . $e->getMessage() . "<br>";
+        }
+    }
+
+    // Handling Like/Dislike
+    if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['like'])) {
+        $commentId = $_POST['comment_id'];
+        try {
+            $comment->likeComment($userId, $commentId);
+            echo "Liked comment successfully!<br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error liking comment: " . $e->getMessage() . "<br>";
+        }
+    }
+
+    if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dislike'])) {
+        $commentId = $_POST['comment_id'];
+        try {
+            $comment->dislikeComment($userId, $commentId);
+            echo "Disliked comment successfully!<br>";
+            header("Refresh:0");
+        } catch (Exception $e) {
+            echo "Error disliking comment: " . $e->getMessage() . "<br>";
+        }
+    }
     ?>
+
     <form action="" method="post">
         <h2>Register or Login</h2>
         <label>Username: <input type="text" name="username"></label><br>
@@ -152,75 +223,17 @@
         <input type="submit" name="login" value="Login">
         <input type="submit" name="logout" value="Logout">
     </form>
+
     <?php
-
-    if (isset($_POST['logout'])) {
-        $user->logout();
-        echo "User logged out successfully!<br>";
-        header("Refresh:0");
-    }
-
-    if (isset($_POST['register'])) {
-        $username = $_POST['username'];
-        $password = $_POST['password'];
-        $email = 'admin@' . $username . '.com';
-        try {
-            $user->register($username, $password, $password, $email);
-            echo "User registered successfully!<br>";
-            header("Refresh:0");
-        } catch (Exception $e) {
-            echo "Error registering user: " . $e->getMessage() . "<br>";
-        }
-    }
-
-    if (isset($_POST['login'])) {
-        $username = $_POST['username'];
-        $password = $_POST['password'];
-        try {
-            $user->login($username, $password);
-            echo "User logged in successfully!<br>";
-            header("Refresh:0");
-        } catch (Exception $e) {
-            echo "Error logging in user: " . $e->getMessage() . "<br>";
-        }
-    }
-
-    if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_comment'])) {
-        $productId = 101;
-        $commentText = $_POST['comment'];
-        $rating = $_POST['rating'];
-        try {
-            $comment->addComment($userId, $productId, $commentText, $rating);
-            echo "Comment added successfully!<br>";
-            header("Refresh:0");
-        } catch (Exception $e) {
-            echo "Error adding comment: " . $e->getMessage() . "<br>";
-        }
-    }
-
-    // Reply to a comment
-    if ($userId && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply'])) {
-        $productId = 101;
-        $commentText = $_POST['reply_comment'];
-        $replyTo = $_POST['reply_to'];
-        try {
-            $comment->addComment($userId, $productId, $commentText, null, $replyTo);
-            echo "Reply added successfully!<br>";
-            header("Refresh:0");
-        } catch (Exception $e) {
-            echo "Error adding reply: " . $e->getMessage() . "<br>";
-        }
-    }
-
-    // Display comments
+    // Displaying comments with like/dislike
     echo "<h3>Comments for product ID 101:</h3>";
     try {
         $comments = $comment->getComments(101);
-        // Comment form
+
         echo "<h3>Leave a comment:</h3>";
         echo "<form method='post'>";
         echo "<textarea name='comment' rows='4' cols='50' placeholder='Your comment...'></textarea> <br>";
-        echo "<input type='number' name='rating' min='0' max='5' step='0.5' placeholder='Rating (0-5)' required><br>";
+        echo "<input type='number' name='rating' min='0' max='5' step='0.5' placeholder='Rating (0-5)'><br>";
         echo "<input type='submit' name='add_comment' value='Add comment'>";
         echo "</form>";
 
@@ -228,9 +241,29 @@
             foreach ($comments as $commentData) {
                 if ($commentData['reply_to'] == $parentId) {
                     $commentClass = 'comment' . ($commentData['reply_to'] ? ' comment-reply' : '');
+                    $likedBy = explode(',', $commentData['liked_by']);
+                    $dislikedBy = explode(',', $commentData['disliked_by']);
+                    $likesCount = count(array_filter($likedBy));
+                    $dislikesCount = count(array_filter($dislikedBy));
+
                     echo "<p class='$commentClass'><strong>" . $user->getUsernameFromUid($commentData['uid']) . ":</strong> {$commentData['comment']} <br>";
                     echo "Rating: " . ($commentData['rating'] ?? 'N/A') . "<br>";
+                    echo "<button class='like-button' type='submit' form='like-form-{$commentData['id']}'>Like</button> <span class='likes-count'>Likes: $likesCount</span> ";
+                    echo "<button class='dislike-button' type='submit' form='dislike-form-{$commentData['id']}'>Dislike</button> <span class='dislikes-count'>Dislikes: $dislikesCount</span>";
                     echo "<button class='reply-button' onclick='toggleReplyForm({$commentData['id']})'>Reply</button>";
+
+                    // Like form
+                    echo "<form id='like-form-{$commentData['id']}' method='POST' style='display:none;'>";
+                    echo "<input type='hidden' name='comment_id' value='{$commentData['id']}'>";
+                    echo "<input type='hidden' name='like' value='1'>";
+                    echo "</form>";
+
+                    // Dislike form
+                    echo "<form id='dislike-form-{$commentData['id']}' method='POST' style='display:none;'>";
+                    echo "<input type='hidden' name='comment_id' value='{$commentData['id']}'>";
+                    echo "<input type='hidden' name='dislike' value='1'>";
+                    echo "</form>";
+
                     echo "<div id='reply-form-{$commentData['id']}' class='reply-form'>
                         <form method='POST'>
                             <input type='hidden' name='reply_to' value='{$commentData['id']}'>
@@ -239,17 +272,16 @@
                         </form>
                     </div>";
                     echo "</p>";
+
                     displayComments($comments, $user, $commentData['id'], $depth + 1);
                 }
             }
         }
-
 
         displayComments($comments, $user);
     } catch (Exception $e) {
         echo "Error displaying comments: " . $e->getMessage();
     }
     ?>
-
 </body>
 </html>
