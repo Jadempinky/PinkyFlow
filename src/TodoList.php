@@ -110,3 +110,22 @@ ADD CATEGORY TO SHOP ITEMS
 // }
 
 
+/*
+
+
+Make something like this at the end 
+
+$header('home','shop','user',$burger);
+if (!$userid) {
+  $loginform;
+} else {
+  $log-outbtn;
+}
+...
+
+Pre create div, sections etc, for easy pre use, like $registerform
+
+Would build a registerform, where the coder placed it
+
+
+*/
