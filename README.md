@@ -37,7 +37,7 @@ PinkyFlow is a modular PHP framework designed to provide a flexible and easy-to-
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/PinkyFlow.git
+   git clone https://github.com/Jadempinky/PinkyFlow.git
    ```
 
 2. **Navigate to the project directory**
@@ -152,5 +152,3 @@ Ensure your code adheres to the project's coding standards and includes appropri
 This project is licensed under the [MIT License](LICENSE).
 
 ---
-
-*Note: Replace `yourusername` in the Git clone URL with your actual GitHub username. Update any paths or placeholders with actual values relevant to your project.*
