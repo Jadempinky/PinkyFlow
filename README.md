@@ -1,119 +1,87 @@
 
 # PinkyFlow
 
-PinkyFlow est un framework PHP modulaire conçu pour fournir une base flexible et facile à utiliser pour la création d'applications web. Il offre une gamme de modules, notamment l'authentification des utilisateurs, la gestion des paniers d'achats, les commentaires et les avis, et bien plus encore. Le framework est conçu pour être facilement configurable, même pour les utilisateurs ayant peu d'expérience en codage.
+PinkyFlow is a modular PHP framework designed to provide a flexible and easy-to-use base for creating web applications. It offers a variety of modules, including user authentication, shopping cart management, comment systems, and more. The framework is designed to be easily configurable, even for users with minimal coding experience.
 
-## Fonctionnalités
+## Features
 
-- **Conception modulaire** : Activez ou désactivez les modules selon vos besoins via un simple fichier de configuration.
-- **Authentification utilisateur** : Inscription, connexion et gestion des sessions utilisateur.
-- **Module de Shopping** : Gestion des produits, panier d'achat, liste de souhaits et favoris.
-- **Module de Commentaires** : Ajoutez des commentaires et des avis sur les produits.
-- **Configuration facile** : Un fichier `config.php` simple pour ajuster les paramètres sans toucher au code principal.
-- **Configuration automatique** : Crée automatiquement les fichiers de configuration et les tables de base de données nécessaires.
+- **Modular Design**: Enable or disable modules based on your needs via a simple configuration file.
+- **User Authentication**: Register, login, and manage user sessions.
+- **Shopping Module**: Manage products, shopping carts, wishlists, and favorites.
+- **Comment System**: Add comments and reviews for products.
+- **Easy Configuration**: A simple `config.php` file to adjust settings without touching the core code.
+- **Automatic Setup**: Automatically generates configuration files and necessary database tables.
 
-## Table des Matières
+## Table of Contents
 
-- [Exigences](#exigences)
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Utilisation](#utilisation)
-  - [Initialisation du Framework](#initialisation-du-framework)
-  - [Inscription d'un utilisateur](#inscription-dun-utilisateur)
-  - [Gestion des produits](#gestion-des-produits)
-  - [Commentaires et avis](#commentaires-et-avis)
-- [Contribuer](#contribuer)
-- [Licence](#licence)
+- [Usage](#usage)
+  - [Framework Initialization](#framework-initialization)
+  - [User Registration](#user-registration)
+  - [Product Management](#product-management)
+  - [Comments and Reviews](#comments-and-reviews)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Exigences
+## Requirements
 
-- PHP 7.4 ou supérieur
-- MySQL 5.7 ou supérieur (ou base de données compatible)
-- Serveur web (Apache, Nginx, etc.)
-- Composer (recommandé pour la gestion des dépendances et le chargement automatique)
+- PHP 7.4 or higher
+- MySQL 5.7 or higher (or a compatible database)
+- Web server (Apache, Nginx, etc.)
+- Composer (recommended for dependency management and autoloading)
 
 ## Installation
 
-1. **Cloner le dépôt**
+1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/votrenomutilisateur/PinkyFlow.git
+   git clone https://github.com/Jadempinky/PinkyFlow.git
    ```
 
-2. **Naviguer dans le répertoire du projet**
+2. **Navigate to the project directory**
 
    ```bash
    cd PinkyFlow
    ```
 
-3. **Installer les dépendances (optionnel mais recommandé)**
-
-   Si vous utilisez Composer pour la gestion des dépendances :
+3. **Install dependencies (optional but recommended)**
 
    ```bash
    composer install
    ```
 
-4. **Configurer le serveur web**
-
-   Configurez votre serveur web pour qu'il serve le répertoire du projet. Assurez-vous que le répertoire racine du document est configuré correctement.
-
 ## Configuration
 
-PinkyFlow utilise un fichier `config.php` pour les paramètres de configuration. Le framework génère automatiquement ce fichier s'il n'existe pas.
+Update the configuration settings in the `config.php` file, located in the root directory of the project. This file allows you to adjust the database settings and enable or disable modules.
 
-1. **Générer le fichier `config.php`**
+## Usage
 
-   Le framework créera un fichier `config.php` avec les paramètres par défaut lors de la première exécution. Vous pouvez également le créer manuellement :
+### Framework Initialization
 
-   ```php
-   <?php
-   // config.php
-
-   // Variables de configuration
-   $enableDatabase = true;       // Activer ou désactiver le module de base de données
-   $enableUserModule = true;     // Activer ou désactiver l'authentification des utilisateurs
-   $enableShoppingModule = true; // Activer ou désactiver les fonctionnalités de shopping
-   $enableCommentModule = true;  // Activer ou désactiver le système de commentaires
-
-   // Informations d'identification de la base de données
-   $dbHost = 'localhost'; // Hôte de la base de données
-   $dbUser = 'root';      // Nom d'utilisateur de la base de données
-   $dbPass = '';          // Mot de passe de la base de données
-   $dbName = 'pinkyflow'; // Nom de la base de données
-
-   ?>
-   ```
-
-2. **Modifier le fichier `config.php`**
-
-   Ouvrez le fichier `config.php` dans un éditeur de texte et ajustez les paramètres selon vos besoins. Assurez-vous de définir correctement les informations d'identification de votre base de données.
-
-## Utilisation
-
-### Initialisation du Framework
-
-Incluez le script d'initialisation dans vos fichiers PHP pour accéder aux fonctionnalités du framework.
+To initialize the PinkyFlow framework, simply require the `PinkyFlow.php` file. You no longer need to initialize individual objects, as the framework handles this automatically.
 
 ```php
 <?php
-// Inclure le fichier principal PinkyFlow
-require_once 'path/to/PinkyFlow.php';
-
-// Charger les objets PinkyFlow
-$PinkyFlowObjects = pinkyflow_load_objects();
-
-// Accéder aux objets initialisés
-$db = $PinkyFlowObjects['PinkyFlowDB'] ?? null;
-$user = $PinkyFlowObjects['PinkyFlowUser'] ?? null;
-$shop = $PinkyFlowObjects['PinkyFlowShop'] ?? null;
-$comment = $PinkyFlowObjects['PinkyFlowComment'] ?? null;
+require_once __DIR__ . '/PinkyFlow.php';
 ?>
 ```
 
-### Inscription d'un utilisateur
+Once required, the necessary objects will be automatically loaded, and you can access them through the framework.
 
-Pour inscrire un nouvel utilisateur :
+Example usage:
+```php
+<?php
+require_once __DIR__ . '/PinkyFlow.php';
+
+// Now you can use $user, $shop, $comment, etc.
+?>
+```
+
+### User Registration
+
+To register a new user:
 
 ```php
 <?php
@@ -122,68 +90,65 @@ if ($user) {
         $username = 'newuser';
         $password = 'securepassword123';
         $user->register($username, $password);
-        echo 'Utilisateur inscrit avec succès !';
+        echo 'User registered successfully!';
     } catch (Exception $e) {
-        echo 'Erreur : ' . $e->getMessage();
+        echo 'Error: ' . $e->getMessage();
     }
 }
 ?>
 ```
 
-### Gestion des produits
+### Product Management
 
-Ajouter un nouveau produit :
+Add a new product:
 
 ```php
 <?php
 if ($shop) {
     $productData = [
-        'name' => 'Produit Exemple',
-        'description' => 'Ceci est un produit exemple.',
+        'name' => 'Example Product',
+        'description' => 'This is an example product.',
         'price' => 19.99,
-        // Ajouter d'autres champs de produit si nécessaire
     ];
     $shop->addProduct($productData);
-    echo 'Produit ajouté avec succès !';
+    echo 'Product added successfully!';
 }
 ?>
 ```
 
-### Commentaires et avis
+### Comments and Reviews
 
-Ajouter un commentaire et une note à un produit :
+Add a comment and a rating to a product:
 
 ```php
 <?php
 if ($comment && $user && $user->isLoggedIn()) {
-    $productId = 'produit123';
-    $commentText = 'Super produit !';
+    $productId = 'product123';
+    $commentText = 'Great product!';
     $rating = 5;
     try {
         $comment->addComment($productId, $commentText, null, $rating);
-        echo 'Commentaire ajouté avec succès !';
+        echo 'Comment added successfully!';
     } catch (Exception $e) {
-        echo 'Erreur : ' . $e->getMessage();
+        echo 'Error: ' . $e->getMessage();
     }
 }
 ?>
 ```
 
-## Contribuer
+## Contributing
 
-Les contributions sont les bienvenues ! Suivez ces étapes :
+Contributions are welcome! Follow these steps:
 
-1. Forker le dépôt.
-2. Créer une nouvelle branche pour votre fonctionnalité ou correction de bug.
-3. Apportez vos modifications et validez-les avec des messages clairs.
-4. Soumettez une pull request sur la branche `main`.
+1. Fork the repository.
+2. Create a new branch for your feature or bugfix.
+3. Make your changes and commit with clear messages.
+4. Submit a pull request to the `main` branch.
 
-Assurez-vous que votre code suit les normes de codage du projet et inclut des tests appropriés.
+Ensure your code adheres to the project's coding standards and includes appropriate tests.
 
-## Licence
+## License
 
-Ce projet est sous licence [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
 
 ---
-
-*Remarque : Remplacez `votrenomutilisateur` dans l'URL de clonage Git par votre nom d'utilisateur GitHub. Assurez-vous de mettre à jour tous les chemins ou espaces réservés avec les valeurs réelles de votre projet.*
