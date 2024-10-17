@@ -9,7 +9,6 @@ use PinkyFlow\Modules\Product;
 use PinkyFlow\Modules\Comment;
 
 
-Autoloader::register();
 // Load the configuration file
 require_once __DIR__ . '/config/config.php';
 

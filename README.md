@@ -103,23 +103,6 @@ if (!$user->isLoggedIn()) {
     }
 }
 
-// Once the user is logged in, retrieve and display user details
-if ($user->isLoggedIn()) {
-    echo "User is logged in
-";
-    
-    $email = $user->getEmail();
-    $uid = $user->getUid();
-    $username = $user->getUsernameFromUid($uid);
-
-    echo "Username: " . $username . "
-";
-    echo "Email: " . $email . "
-";
-    echo "Uid: " . $uid . "
-";
-}
-
 ?>
 ```
 
