@@ -1,0 +1,21 @@
+{
+    "name": "jadempinky/pinkyflow",
+    "description": "A PHP framework that makes your code flow like water",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jadempinky",
+            "email": "jadempinky@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "PinkyFlow\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}

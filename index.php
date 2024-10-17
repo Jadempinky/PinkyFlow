@@ -135,7 +135,7 @@
 
     require_once __DIR__ . '/PinkyFlow.php';
 
-    echo "<h1>Comment System Test</h1>";
+    echo "<h1>" + $commentsystem + "/h1>";
 
     $userId = $user->getUid() ?? null;  // Get logged-in user ID
 
