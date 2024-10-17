@@ -1,6 +1,6 @@
 {
     "name": "jadempinky/pinkyflow",
-    "description": "A PHP framework that makes your code flow like water",
+    "description": "A PHP framework that makes your code flow like water. PinkyFlow provides essential modules like user management, shopping cart, and commenting, while maintaining flexibility for custom extensions.",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -17,5 +17,17 @@
             "PinkyFlow\\": "src/"
         }
     },
-    "minimum-stability": "stable"
+    "scripts": {
+        "post-install-cmd": [
+            "PinkyFlow\\Core\\Autoloader::register"
+        ]
+    },
+    "minimum-stability": "stable",
+    "extra": {
+        "documentation": {
+            "usage": "To use the framework, include it in your PHP file and initialize the necessary modules based on your requirements. Example: `$user = new PinkyFlow\\Modules\\User();`.",
+            "configuration": "Edit the `config/config.php` to define your database connection, API keys, or other settings needed by the modules.",
+            "customization": "You can extend any module in the `src/Modules` directory by adding your own custom modules. Ensure that custom modules follow PSR-4 standards and are placed within the correct namespace."
+        }
+    }
 }
