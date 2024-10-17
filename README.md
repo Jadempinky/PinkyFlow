@@ -1,128 +1,63 @@
+Thank you for providing that information. I'll update the README to show how to properly use your Composer package. Here's an updated version of the README that includes installation via Composer and usage instructions:
 
 # PinkyFlow
 
-PinkyFlow is a modular PHP framework designed to provide a flexible and easy-to-use base for creating web applications. It offers a variety of modules, including user authentication, shopping cart management, comment systems, and more. The framework is designed to be easily configurable, even for users with minimal coding experience.
-
-## Features
-
-- **Modular Design**: Enable or disable modules based on your needs via a simple configuration file.
-- **User Authentication**: Register, login, and manage user sessions.
-- **Shopping Module**: Manage products, shopping carts, wishlists, and favorites.
-- **Comment System**: Add comments and reviews for products.
-- **Easy Configuration**: A simple `config.php` file to adjust settings without touching the core code.
-- **Automatic Setup**: Automatically generates configuration files and necessary database tables.
-
-## Table of Contents
-
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-  - [Framework Initialization](#framework-initialization)
-  - [User Registration](#user-registration)
-  - [Product Management](#product-management)
-  - [Comments and Reviews](#comments-and-reviews)
-- [Contributing](#contributing)
-- [License](#license)
-
-## Requirements
-
-- PHP 7.4 or higher
-- MySQL 5.7 or higher (or a compatible database)
-- Web server (Apache, Nginx, etc.)
-- Composer (recommended for dependency management and autoloading)
+PinkyFlow is a modular PHP framework designed to provide a flexible and easy-to-use base for creating web applications. It offers a variety of modules, including user authentication, shopping cart management, comment systems, and more.
 
 ## Installation
 
-1. **Clone the repository**
+You can install PinkyFlow using Composer. Run the following command in your project directory:
 
-   ```bash
-   git clone https://github.com/Jadempinky/PinkyFlow.git
-   ```
-
-2. **Navigate to the project directory**
-
-   ```bash
-   cd PinkyFlow
-   ```
-
-3. **Install dependencies (optional but recommended)**
-
-   ```bash
-   composer install
-   ```
-
-## Configuration
-
-Update the configuration settings in the `config.php` file, located in the root directory of the project. This file allows you to adjust the database settings and enable or disable modules.
+```bash
+composer require jadempinky/pinkyflow
+```
 
 ## Usage
 
-### Framework Initialization
+After installing PinkyFlow via Composer, you can use it in your project as follows:
 
-To initialize the PinkyFlow framework, simply require the `PinkyFlow.php` file. You no longer need to initialize individual objects, as the framework handles this automatically.
+1. Include the Composer autoloader in your PHP file:
 
 ```php
 <?php
-require_once __DIR__ . '/PinkyFlow.php';
-?>
+require_once __DIR__ . '/vendor/autoload.php';
 ```
 
-Once required, the necessary objects will be automatically loaded, and you can access them through the framework.
+2. Initialize the PinkyFlow framework:
 
-Example usage:
 ```php
-<?php
-require_once __DIR__ . '/PinkyFlow.php';
+use PinkyFlow\PinkyFlow;
 
-// Now you can use $user, $shop, $comment, etc.
-?>
+$pinkyFlow = new PinkyFlow();
 ```
 
-### User Registration
-
-To register a new user:
+3. Now you can use the various modules and features of PinkyFlow:
 
 ```php
-<?php
-if ($user) {
-    try {
-        $username = 'newuser';
-        $password = 'securepassword123';
-        $user->register($username, $password);
-        echo 'User registered successfully!';
-    } catch (Exception $e) {
-        echo 'Error: ' . $e->getMessage();
-    }
+// Example: User registration
+$user = $pinkyFlow->getUser();
+try {
+    $username = 'newuser';
+    $password = 'securepassword123';
+    $user->register($username, $password);
+    echo 'User registered successfully!';
+} catch (Exception $e) {
+    echo 'Error: ' . $e->getMessage();
 }
-?>
-```
 
-### Product Management
+// Example: Adding a product
+$shop = $pinkyFlow->getShop();
+$productData = [
+    'name' => 'Example Product',
+    'description' => 'This is an example product.',
+    'price' => 19.99,
+];
+$shop->addProduct($productData);
+echo 'Product added successfully!';
 
-Add a new product:
-
-```php
-<?php
-if ($shop) {
-    $productData = [
-        'name' => 'Example Product',
-        'description' => 'This is an example product.',
-        'price' => 19.99,
-    ];
-    $shop->addProduct($productData);
-    echo 'Product added successfully!';
-}
-?>
-```
-
-### Comments and Reviews
-
-Add a comment and a rating to a product:
-
-```php
-<?php
-if ($comment && $user && $user->isLoggedIn()) {
+// Example: Adding a comment
+$comment = $pinkyFlow->getComment();
+if ($user->isLoggedIn()) {
     $productId = 'product123';
     $commentText = 'Great product!';
     $rating = 5;
@@ -133,22 +68,30 @@ if ($comment && $user && $user->isLoggedIn()) {
         echo 'Error: ' . $e->getMessage();
     }
 }
-?>
 ```
+
+## Configuration
+
+PinkyFlow can be configured by creating a `config.php` file in your project root. Refer to the PinkyFlow documentation for available configuration options.
+
+## Documentation
+
+For more detailed information on how to use PinkyFlow and its various modules, please refer to the [official documentation](https://github.com/Jadempinky/PinkyFlow/wiki).
 
 ## Contributing
 
-Contributions are welcome! Follow these steps:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Make your changes and commit with clear messages.
-4. Submit a pull request to the `main` branch.
-
-Ensure your code adheres to the project's coding standards and includes appropriate tests.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
----
+Citations:
+[1] https://dev.to/dbazhenov/how-to-optimize-the-code-structure-of-a-simple-php-application-as-your-project-grows-4273
+[2] https://blog.district5.co.uk/packaging-your-php-code-into-reusable-composer-packages/
+[3] https://dev.to/joemoses33/create-a-composer-package-how-to-29kn
+[4] https://kinsta.com/blog/create-composer-package/
+[5] https://codewithsusan.com/notes/composer-in-plain-php
+[6] https://getcomposer.org/doc/01-basic-usage.md
+[7] https://m.php.cn/faq/770206.html
+[8] https://www.hostinger.com/tutorials/how-to-install-composer
