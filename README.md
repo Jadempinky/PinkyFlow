@@ -1,4 +1,3 @@
-Thank you for providing that information. I'll update the README to show how to properly use your Composer package. Here's an updated version of the README that includes installation via Composer and usage instructions:
 
 # PinkyFlow
 
@@ -85,13 +84,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-Citations:
-[1] https://dev.to/dbazhenov/how-to-optimize-the-code-structure-of-a-simple-php-application-as-your-project-grows-4273
-[2] https://blog.district5.co.uk/packaging-your-php-code-into-reusable-composer-packages/
-[3] https://dev.to/joemoses33/create-a-composer-package-how-to-29kn
-[4] https://kinsta.com/blog/create-composer-package/
-[5] https://codewithsusan.com/notes/composer-in-plain-php
-[6] https://getcomposer.org/doc/01-basic-usage.md
-[7] https://m.php.cn/faq/770206.html
-[8] https://www.hostinger.com/tutorials/how-to-install-composer
