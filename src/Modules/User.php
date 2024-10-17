@@ -194,7 +194,9 @@ class User {
             return "Email already exists";
         }
 
-        $uid = uniqid();
+        do {
+            $uid = uniqid();
+        } while ($this->db->verifyInTable($this->table, 'uid', $uid));
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $this->db->prepare("INSERT INTO `{$this->table}` (`uid`, `username`, `password`, `email`) VALUES (:uid, :username, :password, :email)");
         $stmt->execute(['uid' => $uid, 'username' => $username, 'password' => $hashedPassword, 'email' => $email]);
