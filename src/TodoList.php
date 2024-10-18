@@ -10,7 +10,10 @@ DONE ----> Add a role optiion to the user
 DOING ---> Add reviews, comments, and rating
 DOING ---> Add a cart and change certain functions to check for role
 
-
+Check the Category Module
+Automaticly sort imported image for categories, shop items, etc neatly inside folder of their own category name
+Admin class with easy management, access to everything, TVA, Taxes, Profit, users, etc
+($admin->usertable)
 Add global taxe variable that affects everything for the shop
 
 Censor for comments and reviews (Check for links and same messages over and over again)
