@@ -134,5 +134,31 @@ class Shop {
     public function getWishlistClass() { // Added for wishlist
         return $this->wishlist;
     }
+
+    
+    // Make all category commands public
+    public function getCategoryByName($name) {
+        return $this->category->getCategoryByName($name);
+    }
+
+    public function getSubcategories($parent_id) {
+        return $this->category->getSubcategories($parent_id);
+    }
+
+    public function updateCategory($id, $name, $description = '', $image = '', $parent_id = null) {
+        return $this->category->updateCategory($id, $name, $description, $image, $parent_id);
+    }
+
+    public function deleteCategory($id) {
+        return $this->category->deleteCategory($id);
+    }
+
+    public function addCategoryImage($id, $image) {
+        return $this->category->addCategoryImage($id, $image);
+    }
+
+    public function setCategoryDescription($id, $description) {
+        return $this->category->setCategoryDescription($id, $description);
+    }
 }
 ?>

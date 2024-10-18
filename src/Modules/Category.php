@@ -50,6 +50,7 @@ class Category {
                 'parent_id' => $parent_id
             ]);
 
+            getCategoryFolder($name);
             return $this->db->getLastInsertId();
         } catch (Exception $e) {
             error_log($e->getMessage());
