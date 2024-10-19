@@ -35,7 +35,6 @@ class Comment {
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
-            echo "Comments table created successfully!<br>";
         } catch (\PDOException $e) {
             echo "Error creating the comments table: " . $e->getMessage() . "<br>";
             error_log($e->getMessage());
