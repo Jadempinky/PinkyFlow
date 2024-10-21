@@ -50,6 +50,10 @@ class Shop {
         return $this->product->getAllProducts();
     }
 
+    public function getAllProducts() {
+        return $this->product->getAllProducts();
+    }
+
     public function viewProduct($product_id) {
         return $this->product->getProduct($product_id);
     }

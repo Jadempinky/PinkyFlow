@@ -1,6 +1,8 @@
 <?php
 namespace PinkyFlow\Core;
 
+
+// Automatically open and close the DB on use
 class PinkyFlowDB {
     private $host;
     private $user;
