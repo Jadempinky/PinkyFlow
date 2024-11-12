@@ -83,6 +83,16 @@ class Favorite {
         $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `uid` = :uid");
         $stmt->execute(['uid' => $uid]);
     }
+
+    public function isFavorite($product_id) {
+        if (!$this->user->isLoggedIn()) {
+            throw new Exception("User must be logged in to check favorite status.");
+        }
+        $uid = $this->user->getUid();
+        $stmt = $this->db->prepare("SELECT `id` FROM `{$this->table}` WHERE `uid` = :uid AND `product_id` = :product_id");
+        $stmt->execute(['uid' => $uid, 'product_id' => $product_id]);
+        return $stmt->fetch() !== false;
+    }
 }
 
 ?>
