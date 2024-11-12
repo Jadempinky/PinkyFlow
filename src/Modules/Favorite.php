@@ -21,8 +21,7 @@ class Favorite {
                 `uid` VARCHAR(255) NOT NULL,
                 `product_id` VARCHAR(255) NOT NULL,
                 `added_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (`uid`) REFERENCES `users`(`uid`) ON DELETE CASCADE,
-                FOREIGN KEY (`product_id`) REFERENCES `products`(`product_id`) ON DELETE CASCADE
+                FOREIGN KEY (`uid`) REFERENCES `users`(`uid`) ON DELETE CASCADE
             ";
             try {
                 $this->db->createTable($this->table, $options);
