@@ -14,7 +14,7 @@ use PinkyFlow\Modules\Favorite;
 require_once __DIR__ . '/config/config.php';
 
 function pinkyflow_initialize_globals() {
-    global $db, $user, $shop, $product, $comment;
+    global $db, $user, $shop, $product, $comment, $favorite;
 
     // Initialize the Database if enabled
     if (Config::$enableDatabase) {
