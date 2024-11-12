@@ -7,6 +7,7 @@ use PinkyFlow\Modules\User;
 use PinkyFlow\Modules\Shop;
 use PinkyFlow\Modules\Product;
 use PinkyFlow\Modules\Comment;
+use PinkyFlow\Modules\Favorite;
 
 
 // Load the configuration file
