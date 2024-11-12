@@ -23,6 +23,7 @@ function pinkyflow_initialize_globals() {
     // Initialize the User module if enabled
     if (Config::$enableUserModule) {
         $user = new User($db); // Pass the database object to the User class
+        $favorite = new Favorite($db, $user);
     }
 
     // Initialize the Shopping module if enabled
