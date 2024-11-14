@@ -20,7 +20,7 @@ class Comment {
             CREATE TABLE IF NOT EXISTS `comments` (
                 `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 `uid` VARCHAR(255) NOT NULL,
-                `parent_id` INT DEFAULT NULL,
+                `parent_id` VARCHAR(255) DEFAULT NULL,
                 `rating` INT DEFAULT NULL,
                 `comment` TEXT NOT NULL,
                 `reply_to` INT DEFAULT NULL,
@@ -85,6 +85,11 @@ class Comment {
     public function deleteComment($comment_id) {
         $stmt = $this->db->prepare("DELETE FROM `{$this->table}` WHERE `id` = :id");
         $stmt->execute(['id' => $comment_id]);
+        if ($stmt->rowCount() > 0) {
+            return true;
+        } else {
+            throw new Exception("Failed to delete comment.");
+        }
     }
 
     public function editComment($comment_id, $comment) {
