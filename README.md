@@ -39,44 +39,100 @@ class Config {
 
 The following code demonstrates how to use **PinkyFlow** for user registration, login, and retrieving user details:
 
+Index : 
 ```php
 <?php
 require_once __DIR__ . '/vendor/jadempinky/pinkyflow/PinkyFlow.php';
+?>
+```
 
+ProfileController : 
+```php
+<?php
 
-// Register a new user
-if (isset($_POST['register'])) {
-    $user->register($_POST['username'], $_POST['password'], $_POST['password'], $_POST['email']);
+class ProfileController {
+    private $user;
+    private $basepathforcss;
+
+    public function __construct($user, $basepathforcss) {
+        $this->user = $user;
+        $this->basepathforcss = $basepathforcss;
+    }
+
+    public function handleProfile() {
+        if (!$this->user->isLoggedIn()) {
+            header("Location: {$this->basepathforcss}/login");
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture'])) {
+            $this->user->handleProfilePicture($_FILES['profile_picture']);
+        }
+
+        // Handle logout
+        if ($user->isLoggedIn()) {
+            echo '<form action="' . $_SERVER['PHP_SELF'] . '" method="post"><button type="submit" name="logout">Logout</button></form>';
+        }
+
+        if (isset($_POST['logout'])) {
+            $user->logout();
+        }
+
+        // TODO: Use the same system as BoutiquePinkyflow to save profile images in the asset folders
+        // (And create folder if it doesn't exist) Update the user pinkyflow with this new function as well.
+    }
 }
 
-// Check if the user is logged in; if not, log them in
+$profile = new ProfileController($user, $basepathforcss);
+$profile->handleProfile();
+
+?>
+```
+Profile view : 
+```php
+
+<?php
+
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <img src="<?php echo $user->getProfilePicture(); ?>" alt="<?php echo $user->getUsername(); ?>'s Profile Picture" onclick="showfileinput()">
+            <h1>Profile</h1>
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" id="fileinput" name="profile_picture" accept="image/*" style="display: none;" onchange="this.form.submit()">
+            </form>
+        </div>
+        <ul class="profile-details">
+            <li><span>Username:</span> <?php echo $user->getUsername(); ?></li>
+            <li><span>Email:</span> <?php echo $user->getEmail(); ?></li>
+            <li><span>Role:</span> <?php echo $user->getRole(); ?></li>
+        </ul>
+        <p><a href="<?php echo $basepathforcss ?>/logout">Logout</a></p>
+    </div>
+
+    <script>
+        function showfileinput() {
+            document.getElementById('fileinput').click();
+        }
+    </script>
+
+?>
+```
+
+
+Login-Register system
+
+```php
+// Handle register / login
 if (!$user->isLoggedIn()) {
+    if (isset($_POST['register'])) {
+        $user->register($_POST['username'], $_POST['password'], $_POST['password'], $_POST['email']);
+    }
     if (isset($_POST['login'])) {
         $user->login($_POST['username'], $_POST['password']);
     }
 }
-
-// Once the user is logged in, retrieve and display user details
-if ($user->isLoggedIn()) {
-    echo "User is logged in\n";
-    
-    $email = $user->getEmail();
-    $uid = $user->getUid();
-    $username = $user->getUsernameFromUid($uid);
-
-    echo "Username: " . $username . "\n";
-    echo "Email: " . $email . "\n";
-    echo "Uid: " . $uid . "\n";
-}
-
-if ($user->isLoggedIn()) {
-    echo '<form action="' . $_SERVER['PHP_SELF'] . '" method="post"><button type="submit" name="logout">Logout</button></form>';
-}
-
-if (isset($_POST['logout'])) {
-    $user->logout();
-}
-?>
+        
 <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post">
     <input type="text" name="username" placeholder="Username"><br>
     <input type="password" name="password" placeholder="Password"><br>
@@ -90,20 +146,6 @@ if (isset($_POST['logout'])) {
     <button type="submit" name="login">Login</button>
 </form>
 
-<?php
-// Register a new user
-if (isset($_POST['register'])) {
-    $user->register($_POST['username'], $_POST['password'], $_POST['password'], $_POST['email']);
-}
-
-// Check if the user is logged in; if not, log them in
-if (!$user->isLoggedIn()) {
-    if (isset($_POST['login'])) {
-        $user->login($_POST['username'], $_POST['password']);
-    }
-}
-
-?>
 ```
 
 
