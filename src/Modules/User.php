@@ -15,11 +15,11 @@ class User {
     public $sessionname;
     public $comment;
 
-    public function __construct($db) {
+    public function __construct($db, $sessionname = "PinkyFlow_User") {
         $this->db = $db;
         $this->table = 'users';
         $this->role = 'user';
-        $this->sessionname = "pinkyflow_user";
+        $this->sessionname = session_name();
 
         $this->comment = null;
 
@@ -60,10 +60,10 @@ class User {
         $stmt->execute(['username' => $username, 'password' => $hashedPassword, 'uid' => $uid]);
     }
 
-    public function remove() {
+    public function remove($uid) {
         $sql = "DELETE FROM `users` WHERE `uid`=:uid";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['uid' => $this->uid]);
+        $stmt->execute(['uid' => $uid]);
     }
 
     public function edit() {
@@ -84,7 +84,9 @@ class User {
                 `username` VARCHAR(255) NOT NULL,
                 `password` VARCHAR(255) NOT NULL,
                 `email` VARCHAR(255),
-                `role` VARCHAR(255) NOT NULL DEFAULT 'user',
+                `role` VARCHAR(255) NOT NULL DEFAULT 'student',
+                `verified` TINYINT(1) NOT NULL DEFAULT 0,
+                `profile_picture` VARCHAR(255) NOT NULL DEFAULT 'default.jpg',
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `last_ip` VARCHAR(255)
@@ -144,6 +146,9 @@ class User {
         $stmt = $this->db->prepare("SELECT `username` FROM `{$this->table}` WHERE `uid` = :uid");
         $stmt->execute(['uid' => $uid]);
         $user = $stmt->fetch();
+        if (!$user) {
+            return "Deleted user";
+        }
         return $user['username'];
     }
 
@@ -208,12 +213,13 @@ class User {
         $stmt->execute(['uid' => $this->uid]);
         $user = $stmt->fetch();
         $this->role = $user['role'];
+        $user['role'] = strtolower($user['role']);
         return $user['role'];
     }
 
-    public function setRole($role) {
+    public function setRole($role, $uid) {
         $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `role` = :role WHERE `uid` = :uid");
-        $stmt->execute(['role' => $role, 'uid' => $this->uid]);
+        $stmt->execute(['role' => $role, 'uid' => $uid]);
 
         $this->role = $role;
 
@@ -223,6 +229,58 @@ class User {
     public function getTable() {
         return $this->table;
     }
+
+    public function getProfilePicture() {
+        $stmt = $this->db->prepare("SELECT `profile_picture` FROM `{$this->table}` WHERE `uid` = :uid");
+        $stmt->execute(['uid' => $this->uid]);
+        $user = $stmt->fetch();
+        return $user['profile_picture'];
+    }
+
+    public function setProfilePicture($profilePicture) {
+        $stmt = $this->db->prepare("UPDATE `{$this->table}` SET `profile_picture` = :profilePicture WHERE `uid` = :uid");
+        $stmt->execute(['profilePicture' => $profilePicture, 'uid' => $this->uid]);
+    }
+
+    public function handleProfilePicture($profilePicture) {
+        //The $profilePicture variable is the raw image, so we gotta process it and save it after
+        if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
+            $imageTmpPath = $_FILES['profile_picture']['tmp_name'];
+            $originalName = $_FILES['profile_picture']['name'];
+            $uploadPath = $this->addImage($imageTmpPath, $originalName);
+            $this->setProfilePicture($uploadPath);
+        }
+    }
+
+    
+    public function addImage($imageTmpPath, $originalName) {
+        $name = $this->getUid();
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION); // Get the original file extension
+        $imageName = $name . '.' . $extension; // Rename the image with `$name`
+        $categoryname = "Users";
+        if (!file_exists('Assets/img/' . $categoryname)) {
+            mkdir('Assets/img/' . $categoryname, 0777, true);
+        }
+
+        if (file_exists('Assets/img/' . $categoryname . '/' . $imageName)) {
+            unlink('Assets/img/' . $categoryname . '/' . $imageName);
+        }
+        
+        $uploadPath = 'Assets/img/' . $categoryname . '/' . $imageName;
+        
+
+        if ($imageName == null) {
+            $imageName = $this->defaultImage;
+            $uploadPath = 'Assets/img/' . $imageName;
+            if (!file_exists($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+        }
+        move_uploaded_file($imageTmpPath, $uploadPath);
+
+        return $uploadPath;
+    }
+    
 
 }
 ?>

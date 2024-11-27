@@ -82,6 +82,41 @@ class PinkyFlowDB {
         return $this->conn->prepare($sql);
     }
 
+    public function sanitize($string) {
+
+        // Replace <script> and </script> with placeholders
+        $string = str_replace('<?', '##PHP_OPEN_TAG##', $string);
+        $string = str_replace('?>', '##PHP_CLOSE_TAG##', $string);
+        $string = str_replace('<script>', '##SCRIPT_OPEN_TAG##', $string);
+        $string = str_replace('</script>', '##SCRIPT_CLOSE_TAG##', $string);
+        $string = str_replace('<img', '##IMG_OPEN_TAG##', $string);
+
+        $string = str_ireplace(['DROP TABLE', 'DROP DATABASE', 'TRUNCATE TABLE', 'TRUNCATE DATABASE'], '##DBDROP##', $string);
+
+        // Now apply htmlspecialchars
+        $sql = htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+        
+        // Replace placeholders with comments (after encoding)
+        $sql = str_replace('##PHP_OPEN_TAG##', '<!-- Nice try -->', $sql);
+        $sql = str_replace('##PHP_CLOSE_TAG##', '<!-- But you failed -->', $sql);
+        $sql = str_replace('##SCRIPT_OPEN_TAG##', '<!-- I AM 4 PARALLEL UNIVERSES AHEAD OF YOU -->', $sql);
+        $sql = str_replace('##SCRIPT_CLOSE_TAG##', '<!-- :) -->', $sql);
+        
+        if (strpos($sql, '##DBDROP##') !== false) {
+            $sql = "<img src='https://media1.giphy.com/media/s0FsE5TsEF8g8/200.gif' alt='Us rn (you are on the left)'>";
+        }
+        if (strpos($sql, '##IMG_OPEN_TAG##') !== false) {
+            $sql = "<img src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSjyPIiBGeJmhLiuHpEM6eOGr4VPSb4Ua8vA&s' alt='You got JADED'>";
+        }
+        
+        return $sql;
+    }
+    
+    public function escape($value) {
+        return $this->conn->quote($value);
+    }
+    
+
     public function verifyInTable($tableName, $column, $value) {
         $stmt = $this->conn->prepare("SELECT * FROM `$tableName` WHERE `$column` = :value");
         $stmt->execute(['value' => $value]);
