@@ -77,9 +77,6 @@ class ProfileController {
         if (isset($_POST['logout'])) {
             $user->logout();
         }
-
-        // TODO: Use the same system as BoutiquePinkyflow to save profile images in the asset folders
-        // (And create folder if it doesn't exist) Update the user pinkyflow with this new function as well.
     }
 }
 
